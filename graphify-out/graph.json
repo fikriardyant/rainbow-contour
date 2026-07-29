@@ -37,10 +37,40 @@
       "source_file": "docs/superpowers/plans/2026-07-29-e2e-pipeline-plan.md"
     },
     {
+      "id": "plan_rem",
+      "label": "2026-07-29-remaining-features-plan.md",
+      "type": "doc",
+      "source_file": "docs/superpowers/plans/2026-07-29-remaining-features-plan.md"
+    },
+    {
       "id": "test_e2e",
       "label": "test_e2e_pipeline.rs",
       "type": "code",
       "source_file": "tests/test_e2e_pipeline.rs"
+    },
+    {
+      "id": "test_dxf_exp",
+      "label": "test_dxf_exporter.rs",
+      "type": "code",
+      "source_file": "tests/test_dxf_exporter.rs"
+    },
+    {
+      "id": "test_wrappers",
+      "label": "test_wrappers.rs",
+      "type": "code",
+      "source_file": "tests/test_wrappers.rs"
+    },
+    {
+      "id": "sh_wrapper",
+      "label": "rainbow-contour.sh",
+      "type": "code",
+      "source_file": "rainbow-contour.sh"
+    },
+    {
+      "id": "bat_wrapper",
+      "label": "rainbow-contour.bat",
+      "type": "code",
+      "source_file": "rainbow-contour.bat"
     },
     {
       "id": "idea_md",
@@ -79,6 +109,18 @@
       "source_file": "src/volume.rs"
     },
     {
+      "id": "marching_rs",
+      "label": "marching_squares.rs",
+      "type": "code",
+      "source_file": "src/marching_squares.rs"
+    },
+    {
+      "id": "dxf_exporter_rs",
+      "label": "dxf_exporter.rs",
+      "type": "code",
+      "source_file": "src/dxf_exporter.rs"
+    },
+    {
       "id": "html_rs",
       "label": "html_exporter.rs",
       "type": "code",
@@ -107,9 +149,24 @@
       "relation": "plans_wiring_of"
     },
     {
+      "source": "plan_rem",
+      "target": "dxf_exporter_rs",
+      "relation": "plans_exporter_for"
+    },
+    {
       "source": "test_e2e",
       "target": "main_rs",
       "relation": "verifies_pipeline"
+    },
+    {
+      "source": "test_dxf_exp",
+      "target": "dxf_exporter_rs",
+      "relation": "verifies_dxf_exporter"
+    },
+    {
+      "source": "test_wrappers",
+      "target": "sh_wrapper",
+      "relation": "verifies_launchers"
     },
     {
       "source": "agent_md",
@@ -138,6 +195,16 @@
     },
     {
       "source": "grid_rs",
+      "target": "marching_rs",
+      "relation": "generates_isolines"
+    },
+    {
+      "source": "marching_rs",
+      "target": "dxf_exporter_rs",
+      "relation": "exports_dxf_vector"
+    },
+    {
+      "source": "grid_rs",
       "target": "volume_rs",
       "relation": "computes_volume"
     },
@@ -155,13 +222,20 @@
       "userflow_doc",
       "plan_doc",
       "plan_e2e",
+      "plan_rem",
       "test_e2e",
+      "test_dxf_exp",
+      "test_wrappers",
+      "sh_wrapper",
+      "bat_wrapper",
       "idea_md",
       "main_rs",
       "cli_rs",
       "dxf_rs",
       "grid_rs",
       "volume_rs",
+      "marching_rs",
+      "dxf_exporter_rs",
       "html_rs"
     ]
   },
