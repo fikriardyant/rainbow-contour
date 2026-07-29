@@ -1,8 +1,10 @@
 mod cli;
 use clap::Parser;
 use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh};
+use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::compute_grid_delta;
 use rainbow_contour::html_exporter::generate_html_viewer;
+use rainbow_contour::marching_squares::generate_isolines;
 use rainbow_contour::volume::calculate_volume;
 use std::fs;
 use std::path::Path;
@@ -33,12 +35,13 @@ fn main() {
     let design_mesh = parse_dxf_mesh(&design_content).expect("Failed to parse Design mesh");
     let boundary = parse_dxf_boundary(&boundary_content).expect("Failed to parse Boundary");
 
-    println!(
-        "Computing spatial grid delta (step = {}m)...",
-        args.step
-    );
+    println!("Computing spatial grid delta (step = {}m)...", args.step);
     let grid = compute_grid_delta(&topo_mesh, &design_mesh, &boundary, args.step);
     let volume = calculate_volume(&grid, args.step);
+
+    println!("Generating Marching Squares contour isolines...");
+    let isolines = generate_isolines(&grid, args.step, vec![-5.0, -2.5, -1.0, 0.0, 1.0, 2.5, 5.0]);
+    let dxf_vector = export_isolines_to_dxf(&isolines);
 
     println!(
         "Volume Calculated: Cut = {} m³, Fill = {} m³, Net = {} m³",
@@ -56,8 +59,8 @@ fn main() {
     fs::write(out_dir.join("volume-summary.json"), json_content)
         .expect("Failed to write volume-summary.json");
 
-    println!(
-        "SUCCESS! Artifacts saved to {}",
-        out_dir.display()
-    );
+    fs::write(out_dir.join("rainbow-output.dxf"), dxf_vector)
+        .expect("Failed to write rainbow-output.dxf");
+
+    println!("SUCCESS! Artifacts saved to {}", out_dir.display());
 }
