@@ -1,0 +1,14 @@
+/home/cells/Documents/Antigravity Project/Rainbow-Contour/target/debug/deps/serde-9be2d025a314ff90.d: /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/cells/Documents/Antigravity\ Project/Rainbow-Contour/target/debug/build/serde-8171b9e16a21d063/out/private.rs
+
+/home/cells/Documents/Antigravity Project/Rainbow-Contour/target/debug/deps/libserde-9be2d025a314ff90.rlib: /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/cells/Documents/Antigravity\ Project/Rainbow-Contour/target/debug/build/serde-8171b9e16a21d063/out/private.rs
+
+/home/cells/Documents/Antigravity Project/Rainbow-Contour/target/debug/deps/libserde-9be2d025a314ff90.rmeta: /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/cells/Documents/Antigravity\ Project/Rainbow-Contour/target/debug/build/serde-8171b9e16a21d063/out/private.rs
+
+/home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/home/cells/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/home/cells/Documents/Antigravity\ Project/Rainbow-Contour/target/debug/build/serde-8171b9e16a21d063/out/private.rs:
+
+# env-dep:OUT_DIR=/home/cells/Documents/Antigravity Project/Rainbow-Contour/target/debug/build/serde-8171b9e16a21d063/out

@@ -1,5 +1,5 @@
 # Graphify Knowledge Graph Report for Rainbow Contour
 
-- Nodes: 7
-- Edges: 6
+- Nodes: 12
+- Edges: 10
 - Communities: 1

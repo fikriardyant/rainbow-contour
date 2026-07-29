@@ -40,7 +40,37 @@
       "id": "main_rs",
       "label": "main.rs",
       "type": "code",
-      "source_file": "main.rs"
+      "source_file": "src/main.rs"
+    },
+    {
+      "id": "cli_rs",
+      "label": "cli.rs",
+      "type": "code",
+      "source_file": "src/cli.rs"
+    },
+    {
+      "id": "dxf_rs",
+      "label": "dxf.rs",
+      "type": "code",
+      "source_file": "src/dxf.rs"
+    },
+    {
+      "id": "grid_rs",
+      "label": "grid_engine.rs",
+      "type": "code",
+      "source_file": "src/grid_engine.rs"
+    },
+    {
+      "id": "volume_rs",
+      "label": "volume.rs",
+      "type": "code",
+      "source_file": "src/volume.rs"
+    },
+    {
+      "id": "html_rs",
+      "label": "html_exporter.rs",
+      "type": "code",
+      "source_file": "src/html_exporter.rs"
     }
   ],
   "edges": [
@@ -70,9 +100,29 @@
       "relation": "specifies_implementation"
     },
     {
-      "source": "idea_md",
-      "target": "spec_design",
-      "relation": "originated_from"
+      "source": "main_rs",
+      "target": "cli_rs",
+      "relation": "uses_cli"
+    },
+    {
+      "source": "main_rs",
+      "target": "dxf_rs",
+      "relation": "uses_dxf_parser"
+    },
+    {
+      "source": "main_rs",
+      "target": "grid_rs",
+      "relation": "uses_grid_engine"
+    },
+    {
+      "source": "grid_rs",
+      "target": "volume_rs",
+      "relation": "computes_volume"
+    },
+    {
+      "source": "volume_rs",
+      "target": "html_rs",
+      "relation": "exports_html"
     }
   ],
   "communities": {
@@ -83,7 +133,12 @@
       "userflow_doc",
       "plan_doc",
       "idea_md",
-      "main_rs"
+      "main_rs",
+      "cli_rs",
+      "dxf_rs",
+      "grid_rs",
+      "volume_rs",
+      "html_rs"
     ]
   },
   "cohesion": {
