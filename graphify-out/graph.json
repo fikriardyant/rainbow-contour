@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {
+      "id": "agent_md",
+      "label": "AGENT.md",
+      "type": "doc",
+      "source_file": "AGENT.md"
+    },
+    {
+      "id": "spec_design",
+      "label": "2026-07-29-auto-rainbow-contour-design.md",
+      "type": "doc",
+      "source_file": "docs/superpowers/specs/2026-07-29-auto-rainbow-contour-design.md"
+    },
+    {
+      "id": "idea_md",
+      "label": "IDEA.md",
+      "type": "doc",
+      "source_file": "IDEA.md"
+    },
+    {
+      "id": "main_rs",
+      "label": "main.rs",
+      "type": "code",
+      "source_file": "main.rs"
+    }
+  ],
+  "edges": [
+    {
+      "source": "agent_md",
+      "target": "spec_design",
+      "relation": "references_spec"
+    },
+    {
+      "source": "spec_design",
+      "target": "main_rs",
+      "relation": "specifies_implementation"
+    },
+    {
+      "source": "idea_md",
+      "target": "spec_design",
+      "relation": "originated_from"
+    }
+  ],
+  "communities": {
+    "0": [
+      "agent_md",
+      "spec_design",
+      "idea_md",
+      "main_rs"
+    ]
+  },
+  "cohesion": {
+    "0": 1.0
+  }
+}
