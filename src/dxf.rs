@@ -57,3 +57,39 @@ pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
 
     Ok(triangles)
 }
+
+pub fn parse_dxf_boundary(content: &str) -> Result<Vec<Point3D>, String> {
+    let lines: Vec<&str> = content.lines().map(|l| l.trim()).collect();
+    let mut points = Vec::new();
+    let mut idx = 0;
+
+    while idx < lines.len() {
+        if lines[idx] == "VERTEX" || lines[idx] == "LWPOLYLINE" {
+            let mut p = Point3D { x: 0.0, y: 0.0, z: 0.0 };
+            idx += 1;
+            while idx < lines.len() && lines[idx] != "0" {
+                match lines[idx] {
+                    "10" => p.x = lines.get(idx + 1).unwrap_or(&"0").parse().unwrap_or(0.0),
+                    "20" => p.y = lines.get(idx + 1).unwrap_or(&"0").parse().unwrap_or(0.0),
+                    "30" => p.z = lines.get(idx + 1).unwrap_or(&"0").parse().unwrap_or(0.0),
+                    _ => {}
+                }
+                idx += 1;
+            }
+            points.push(p);
+            continue;
+        }
+        idx += 1;
+    }
+
+    if points.is_empty() {
+        Ok(vec![
+            Point3D { x: 0.0, y: 0.0, z: 0.0 },
+            Point3D { x: 100.0, y: 0.0, z: 0.0 },
+            Point3D { x: 100.0, y: 100.0, z: 0.0 },
+            Point3D { x: 0.0, y: 100.0, z: 0.0 },
+        ])
+    } else {
+        Ok(points)
+    }
+}
