@@ -13,6 +13,18 @@
       "source_file": "docs/superpowers/specs/2026-07-29-auto-rainbow-contour-design.md"
     },
     {
+      "id": "prd_doc",
+      "label": "01-prd-rainbow-contour.md",
+      "type": "doc",
+      "source_file": "docs/01-prd-rainbow-contour.md"
+    },
+    {
+      "id": "userflow_doc",
+      "label": "02-userflow-wireframe-rainbow-contour.md",
+      "type": "doc",
+      "source_file": "docs/02-userflow-wireframe-rainbow-contour.md"
+    },
+    {
       "id": "idea_md",
       "label": "IDEA.md",
       "type": "doc",
@@ -26,6 +38,16 @@
     }
   ],
   "edges": [
+    {
+      "source": "prd_doc",
+      "target": "spec_design",
+      "relation": "specifies"
+    },
+    {
+      "source": "userflow_doc",
+      "target": "prd_doc",
+      "relation": "models_flow_for"
+    },
     {
       "source": "agent_md",
       "target": "spec_design",
@@ -46,6 +68,8 @@
     "0": [
       "agent_md",
       "spec_design",
+      "prd_doc",
+      "userflow_doc",
       "idea_md",
       "main_rs"
     ]
