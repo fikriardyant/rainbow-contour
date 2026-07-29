@@ -17,4 +17,19 @@ pub struct CliArgs {
 
     #[arg(short, long, default_value = "./output", help = "Output directory")]
     pub outdir: String,
+
+    #[arg(long, help = "Company Name for Kop")]
+    pub company: Option<String>,
+
+    #[arg(long, help = "Rainbow Title / Project Name for Kop")]
+    pub rainbow_title: Option<String>,
+
+    #[arg(long, help = "Drawn By name for Kop")]
+    pub drawn_by: Option<String>,
+
+    #[arg(long, help = "Topo Survey Date for Kop")]
+    pub topo_date: Option<String>,
+
+    #[arg(long, help = "Design Name for Kop")]
+    pub design_name: Option<String>,
 }

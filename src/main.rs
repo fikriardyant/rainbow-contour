@@ -3,34 +3,108 @@ use clap::Parser;
 use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh};
 use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::compute_grid_delta;
-use rainbow_contour::html_exporter::generate_html_viewer;
+use rainbow_contour::html_exporter::{generate_html_viewer, KopInfo};
 use rainbow_contour::marching_squares::generate_isolines;
 use rainbow_contour::volume::calculate_volume;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-fn prompt_file_path(prompt_text: &str, required: bool) -> String {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AppConfig {
+    pub company_name: String,
+    pub rainbow_title: String,
+    pub drawn_by: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            company_name: "PT PAMA PERSADA NUSANTARA".to_string(),
+            rainbow_title: "PIT A CUT & FILL MAP".to_string(),
+            drawn_by: "Fikri Ardyantoro".to_string(),
+        }
+    }
+}
+
+fn get_config_path() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    Path::new(&home).join(".rainbow_contour_config.json")
+}
+
+pub fn load_or_init_config(
+    arg_company: Option<String>,
+    arg_title: Option<String>,
+    arg_drawn_by: Option<String>,
+) -> AppConfig {
+    let config_path = get_config_path();
+    let mut config = if config_path.exists() {
+        let content = fs::read_to_string(&config_path).unwrap_or_default();
+        serde_json::from_str::<AppConfig>(&content).unwrap_or_default()
+    } else {
+        println!("\n======================================================================");
+        println!("  FIRST TIME SETUP - Initial Setup (Saved to ~/.rainbow_contour_config.json)");
+        println!("======================================================================");
+
+        let company = prompt_input("Enter Default Company Name [PT PAMA PERSADA NUSANTARA]: ", false, "PT PAMA PERSADA NUSANTARA");
+        let title = prompt_input("Enter Default Rainbow Name [PIT A CUT & FILL MAP]: ", false, "PIT A CUT & FILL MAP");
+        let drawn = prompt_input("Enter Default Drawn By Name [Fikri Ardyantoro]: ", false, "Fikri Ardyantoro");
+
+        let new_cfg = AppConfig {
+            company_name: company,
+            rainbow_title: title,
+            drawn_by: drawn,
+        };
+
+        if let Ok(json) = serde_json::to_string_pretty(&new_cfg) {
+            let _ = fs::write(&config_path, json);
+        }
+        println!("----------------------------------------------------------------------\n");
+        new_cfg
+    };
+
+    if let Some(c) = arg_company { if !c.is_empty() { config.company_name = c; } }
+    if let Some(t) = arg_title { if !t.is_empty() { config.rainbow_title = t; } }
+    if let Some(d) = arg_drawn_by { if !d.is_empty() { config.drawn_by = d; } }
+
+    config
+}
+
+fn prompt_input(prompt_text: &str, required: bool, default_val: &str) -> String {
     loop {
         print!("{}", prompt_text);
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
-        if io::stdin().read_line(&mut input).is_err() {
-            return String::new();
+        if io::stdin().read_line(&mut input).is_err() || input.is_empty() {
+            // EOF or pipe closed
+            return default_val.to_string();
         }
 
         let trimmed = input.trim().trim_matches('\'').trim_matches('"').to_string();
 
         if trimmed.is_empty() {
+            if !default_val.is_empty() {
+                return default_val.to_string();
+            }
             if required {
-                println!("  [Error] This file path is required. Please enter a valid path.");
+                println!("  [Error] This field is required.");
                 continue;
             } else {
                 return String::new();
             }
         }
+        return trimmed;
+    }
+}
 
+fn prompt_file_path(prompt_text: &str, required: bool) -> String {
+    loop {
+        let trimmed = prompt_input(prompt_text, required, "");
+        if trimmed.is_empty() && !required {
+            return String::new();
+        }
         if Path::new(&trimmed).exists() {
             return trimmed;
         } else {
@@ -80,7 +154,12 @@ fn main() {
     let volume = calculate_volume(&grid, args.step);
 
     println!("Generating Marching Squares contour isolines...");
-    let isolines = generate_isolines(&grid, args.step, vec![-5.0, -2.5, -1.0, 0.0, 1.0, 2.5, 5.0]);
+    let levels = vec![
+        -20.0, -18.0, -16.0, -14.0, -12.0, -10.0, -8.0, -6.0, -4.0, -2.0,
+        0.0,
+        2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0,
+    ];
+    let isolines = generate_isolines(&grid, args.step, levels);
     let dxf_vector = export_isolines_to_dxf(&isolines);
 
     println!("\n----------------------------------------------------------------------");
@@ -89,10 +168,33 @@ fn main() {
         volume.cut_m3, volume.fill_m3, volume.net_m3
     );
 
+    let config = load_or_init_config(args.company, args.rainbow_title, args.drawn_by);
+
+    let topo_date = match args.topo_date {
+        Some(td) if !td.is_empty() => td,
+        _ => prompt_input("Enter Topo Survey Date (e.g. 28 July 2026): ", true, "28 July 2026"),
+    };
+
+    let design_name = match args.design_name {
+        Some(dn) if !dn.is_empty() => dn,
+        _ => prompt_input("Enter Design Name (e.g. Plan EOM July 2026): ", true, "Plan EOM July 2026"),
+    };
+
+    let date_created_str = "29 July 2026".to_string();
+
+    let kop_info = KopInfo {
+        title: &config.rainbow_title,
+        company: &config.company_name,
+        drawn_by: &config.drawn_by,
+        date_created: &date_created_str,
+        topo_date: &topo_date,
+        design_name: &design_name,
+    };
+
     let out_dir = Path::new(&args.outdir);
     fs::create_dir_all(out_dir).expect("Failed to create output directory");
 
-    let html_content = generate_html_viewer("Pit A Cut & Fill Map", &grid, &volume);
+    let html_content = generate_html_viewer(&kop_info, &grid, &volume);
     fs::write(out_dir.join("rainbow-viewer.html"), html_content)
         .expect("Failed to write rainbow-viewer.html");
 

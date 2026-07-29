@@ -1,7 +1,7 @@
 use rainbow_contour::dxf::{Point3D, Triangle3D};
 use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::{compute_grid_delta, GridPointDelta};
-use rainbow_contour::html_exporter::generate_html_viewer;
+use rainbow_contour::html_exporter::{generate_html_viewer, KopInfo};
 use rainbow_contour::marching_squares::generate_isolines;
 use rainbow_contour::volume::calculate_volume;
 use std::fs;
@@ -93,7 +93,15 @@ fn test_generate_sample_output_artifacts() {
     let out_dir = Path::new("./sample_demo_output");
     fs::create_dir_all(out_dir).unwrap();
 
-    let html_content = generate_html_viewer("Sangatta Pit Alpha - July 2026", &grid, &volume);
+    let kop = KopInfo {
+        title: "Sangatta Pit Alpha - July 2026",
+        company: "PT PAMA PERSADA NUSANTARA",
+        drawn_by: "Fikri Ardyantoro",
+        date_created: "29 July 2026",
+        topo_date: "28 July 2026",
+        design_name: "Plan EOM July 2026",
+    };
+    let html_content = generate_html_viewer(&kop, &grid, &volume);
     fs::write(out_dir.join("rainbow-viewer.html"), html_content).unwrap();
     fs::write(
         out_dir.join("volume-summary.json"),

@@ -1,5 +1,5 @@
 use rainbow_contour::grid_engine::GridPointDelta;
-use rainbow_contour::html_exporter::generate_html_viewer;
+use rainbow_contour::html_exporter::{generate_html_viewer, KopInfo};
 use rainbow_contour::volume::VolumeSummary;
 
 #[test]
@@ -18,9 +18,17 @@ fn test_generate_html_viewer_contains_neobrutalism_css() {
         cell_area_m2: 1.0,
     };
 
-    let html = generate_html_viewer("Pit A July 2026", &grid, &summary);
-    assert!(html.contains("RAINBOW CONTOUR ENGINE"));
-    assert!(html.contains("border-4 border-slate-900"));
+    let kop = KopInfo {
+        title: "Pit A July 2026",
+        company: "PT PAMA PERSADA NUSANTARA",
+        drawn_by: "Fikri Ardyantoro",
+        date_created: "29 July 2026",
+        topo_date: "28 July 2026",
+        design_name: "Plan EOM July 2026",
+    };
+    let html = generate_html_viewer(&kop, &grid, &summary);
+    assert!(html.contains("PETA RAINBOW CONTOUR"));
+    assert!(html.contains("map-frame"));
     assert!(html.contains("html2canvas"));
     assert!(html.contains("jspdf"));
 }
