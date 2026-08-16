@@ -12,6 +12,16 @@
         .sidebar-border { border-left: 3px solid #0f172a; }
         .section-divider { border-bottom: 2px solid #0f172a; }
 
+        /* Technical CAD Font Stack */
+        .font-cad-mono {
+            font-family: 'Consolas', 'Courier New', 'ISOCPEUR', monospace;
+            letter-spacing: -0.02em;
+        }
+        .font-cad-title {
+            font-family: 'Arial Narrow', 'ISOCPEUR', 'Arial', sans-serif;
+            font-stretch: condensed;
+        }
+
         /* Fixed Print & Paper Sheet Aspect Ratio Lock */
         #pdf-kop-container {
             width: 1123px !important;
@@ -65,14 +75,14 @@
         }
     </script>
 </head>
-<body class="bg-slate-100 p-4 font-sans text-slate-900 flex justify-center items-center min-h-screen">
+<body class="bg-slate-100 p-4 font-cad-title text-slate-900 flex justify-center items-center min-h-screen">
     <!-- Main A4 Landscape Map Layout Sheet -->
     <div id="pdf-kop-container" class="w-[1123px] h-[794px] bg-white map-frame flex relative p-3 gap-3 shadow-2xl overflow-hidden">
         
         <!-- Left: Map Area with Grid Coordinates Frame -->
         <div class="flex-1 flex flex-col relative border-2 border-slate-900">
             <!-- Top Coordinate Labels -->
-            <div class="h-5 bg-slate-200 border-b border-slate-900 flex justify-between px-10 items-center text-[9px] font-mono font-bold text-slate-700">
+            <div class="h-5 bg-slate-200 border-b border-slate-900 flex justify-between px-10 items-center text-[9px] font-cad-mono font-bold text-slate-700">
                 <span>273000 mE</span>
                 <span>115°27'00"E</span>
                 <span>274000 mE</span>
@@ -82,7 +92,7 @@
 
             <div class="flex-1 flex relative">
                 <!-- Left Coordinate Labels (Clean Padding, Outside Line Collision) -->
-                <div class="w-10 bg-slate-200 border-r-2 border-slate-900 flex flex-col justify-between py-12 px-1 items-center text-[9px] font-mono font-bold text-slate-700 select-none">
+                <div class="w-10 bg-slate-200 border-r-2 border-slate-900 flex flex-col justify-between py-12 px-1 items-center text-[9px] font-cad-mono font-bold text-slate-700 select-none">
                     <span class="[writing-mode:vertical-lr] rotate-180 tracking-tight text-slate-900">9695000 mN</span>
                     <span class="[writing-mode:vertical-lr] rotate-180 text-amber-700 bg-amber-100 px-0.5 border border-amber-300 rounded-[2px] font-extrabold my-2">03°45'00"S</span>
                     <span class="[writing-mode:vertical-lr] rotate-180 tracking-tight text-slate-900">9694000 mN</span>
@@ -104,7 +114,7 @@
             </div>
 
             <!-- Bottom Coordinate Labels -->
-            <div class="h-5 bg-slate-200 border-t border-slate-900 flex justify-between px-10 items-center text-[9px] font-mono font-bold text-slate-700">
+            <div class="h-5 bg-slate-200 border-t border-slate-900 flex justify-between px-10 items-center text-[9px] font-cad-mono font-bold text-slate-700">
                 <span>273000 mE</span>
                 <span>115°27'00"E</span>
                 <span>274000 mE</span>
@@ -209,14 +219,14 @@
             </div>
 
             <!-- Volume Summary Box (No Net) -->
-            <div class="bg-slate-100 border-2 border-slate-900 p-2 space-y-1">
-                <h3 class="font-black text-[10px] uppercase text-slate-900 border-b border-slate-900 pb-0.5">VOLUME SUMMARY</h3>
+            <div class="bg-slate-100 border-2 border-slate-900 p-2 space-y-1 font-cad-mono">
+                <h3 class="font-black text-[10px] uppercase text-slate-900 border-b border-slate-900 pb-0.5 font-cad-title">VOLUME SUMMARY</h3>
                 <div class="flex justify-between items-center text-xs">
-                    <span class="font-bold text-red-600">CUT:</span>
+                    <span class="font-bold text-red-600 font-cad-title">CUT:</span>
                     <span class="font-black text-slate-900">0.00 m³</span>
                 </div>
                 <div class="flex justify-between items-center text-xs">
-                    <span class="font-bold text-blue-600">FILL:</span>
+                    <span class="font-bold text-blue-600 font-cad-title">FILL:</span>
                     <span class="font-black text-slate-900">80000.00 m³</span>
                 </div>
             </div>
