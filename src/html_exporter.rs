@@ -59,10 +59,6 @@ pub fn generate_html_viewer(
     </style>
     <script>
         async function downloadPDF() {{
-            const actionBtnArea = document.getElementById('action-btn-area');
-            const originalDisplay = actionBtnArea.style.display;
-            actionBtnArea.style.display = 'none';
-
             try {{
                 const element = document.getElementById('pdf-kop-container');
                 const canvas = await html2canvas(element, {{
@@ -87,15 +83,27 @@ pub fn generate_html_viewer(
                 pdf.save('Peta_Rainbow_Contour_' + (new Date().toISOString().slice(0,10)) + '.pdf');
             }} catch (err) {{
                 alert('Gagal membuat PDF: ' + err.message);
-            }} finally {{
-                actionBtnArea.style.display = originalDisplay;
             }}
         }}
     </script>
 </head>
-<body class="bg-slate-100 p-4 font-cad-title text-slate-900 flex justify-center items-center min-h-screen">
+<body class="bg-slate-100 p-6 font-cad-title text-slate-900 flex flex-col justify-start items-center min-h-screen gap-4">
+    <!-- Top Action Bar (Outside Paper Sheet / Fixed Layout) -->
+    <header class="w-[1123px] flex justify-between items-center bg-white border-2 border-slate-900 p-3 shadow-[4px_4px_0px_rgba(15,23,42,1)]">
+        <div class="flex items-center gap-3">
+            <span class="text-xl">🌈</span>
+            <div>
+                <h1 class="font-black text-sm uppercase tracking-tight text-slate-900">RAINBOW CONTOUR ENGINE</h1>
+                <p class="text-[10px] text-slate-500 font-cad-mono uppercase">A4 Landscape Map Preview &amp; Export</p>
+            </div>
+        </div>
+        <button id="export-btn" onclick="downloadPDF()" class="bg-yellow-300 hover:bg-yellow-400 border-2 border-slate-900 px-4 py-2 font-black text-xs uppercase shadow-[2px_2px_0px_rgba(15,23,42,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer transition-colors">
+            📥 DOWNLOAD PDF KOP
+        </button>
+    </header>
+
     <!-- Main A4 Landscape Map Layout Sheet -->
-    <div id="pdf-kop-container" class="w-[1123px] h-[794px] bg-white map-frame flex relative p-3 gap-3 shadow-2xl overflow-hidden">
+    <div id="pdf-kop-container" class="w-[1123px] h-[794px] bg-white map-frame flex relative p-3 gap-3 shadow-2xl overflow-hidden shrink-0">
         
         <!-- Left: Map Area with Grid Coordinates Frame -->
         <div class="flex-1 flex flex-col relative border-2 border-slate-900">
@@ -247,13 +255,6 @@ pub fn generate_html_viewer(
                     <span class="font-bold text-blue-600 font-cad-title">FILL:</span>
                     <span class="font-black text-slate-900">{:.2} m³</span>
                 </div>
-            </div>
-
-            <!-- Action Button / Direct Download PDF (Hidden during PDF Capture) -->
-            <div id="action-btn-area" class="pt-1">
-                <button id="export-btn" onclick="downloadPDF()" class="w-full bg-yellow-300 hover:bg-yellow-400 border-2 border-slate-900 py-1.5 font-black text-xs uppercase shadow-[2px_2px_0px_rgba(15,23,42,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2">
-                    📥 DOWNLOAD PDF KOP
-                </button>
             </div>
         </div>
     </div>
