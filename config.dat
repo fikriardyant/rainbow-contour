@@ -1,0 +1,21 @@
+# ======================================================================
+# RAINBOW CONTOUR ENGINE CONFIGURATION (config.dat)
+# Edit parameter di bawah untuk mengubah default kalkulasi & kop peta
+# ======================================================================
+
+# --- KOP & METADATA PETA ---
+COMPANY_NAME=PT PAMA PERSADA NUSANTARA
+DEFAULT_TITLE=PIT A CUT & FILL MAP
+DRAWN_BY=Fikri Ardyantoro
+
+# --- PARAMETER PERHITUNGAN GRID & SURFACE ---
+GRID_STEP=1.00
+MAX_TIN_EDGE=300.0
+WEEDING_MIN_DIST=0.50
+SUPPLEMENT_MAX_DIST=10.0
+
+# --- ISOLINE CONTOUR LEVELS (Meter) ---
+CONTOUR_LEVELS=-20.0,-18.0,-16.0,-14.0,-12.0,-10.0,-8.0,-6.0,-4.0,-2.0,0.0,2.0,4.0,6.0,8.0,10.0,12.0,14.0,16.0,18.0,20.0
+
+# --- DEFAULT OUTPUT ---
+DEFAULT_OUTDIR=./output

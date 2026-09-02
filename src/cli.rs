@@ -12,19 +12,19 @@ pub struct CliArgs {
     #[arg(short, long, help = "Path to Boundary DXF file")]
     pub boundary: Option<String>,
 
-    #[arg(short, long, default_value_t = 1.0, help = "Grid resolution step in meters")]
-    pub step: f64,
+    #[arg(short, long, help = "Grid resolution step in meters (overrides config.dat)")]
+    pub step: Option<f64>,
 
-    #[arg(short, long, default_value = "./output", help = "Output directory")]
-    pub outdir: String,
+    #[arg(short, long, help = "Output directory (overrides config.dat)")]
+    pub outdir: Option<String>,
 
-    #[arg(long, help = "Company Name for Kop")]
+    #[arg(long, help = "Company Name for Kop (overrides config.dat)")]
     pub company: Option<String>,
 
-    #[arg(long, help = "Rainbow Title / Project Name for Kop")]
+    #[arg(long, help = "Rainbow Title / Project Name for Kop (overrides config.dat)")]
     pub rainbow_title: Option<String>,
 
-    #[arg(long, help = "Drawn By name for Kop")]
+    #[arg(long, help = "Drawn By name for Kop (overrides config.dat)")]
     pub drawn_by: Option<String>,
 
     #[arg(long, help = "Topo Survey Date for Kop")]
@@ -32,4 +32,7 @@ pub struct CliArgs {
 
     #[arg(long, help = "Design Name for Kop")]
     pub design_name: Option<String>,
+
+    #[arg(long, default_value = "config.dat", help = "Path to config.dat file")]
+    pub config: String,
 }

@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod config;
 pub mod dxf;
 pub mod dxf_exporter;
 pub mod grid_engine;

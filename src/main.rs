@@ -1,84 +1,27 @@
 mod cli;
 use clap::Parser;
+use rainbow_contour::config::EngineConfig;
 use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh};
 use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::compute_grid_delta;
 use rainbow_contour::html_exporter::{generate_html_viewer, KopInfo};
 use rainbow_contour::marching_squares::generate_isolines;
 use rainbow_contour::volume::calculate_volume;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AppConfig {
-    pub company_name: String,
-    pub rainbow_title: String,
-    pub drawn_by: String,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            company_name: "PT PAMA PERSADA NUSANTARA".to_string(),
-            rainbow_title: "PIT A CUT & FILL MAP".to_string(),
-            drawn_by: "Fikri Ardyantoro".to_string(),
-        }
-    }
-}
-
-fn get_config_path() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    Path::new(&home).join(".rainbow_contour_config.json")
-}
-
-pub fn load_or_init_config(
-    arg_company: Option<String>,
-    arg_title: Option<String>,
-    arg_drawn_by: Option<String>,
-) -> AppConfig {
-    let config_path = get_config_path();
-    let mut config = if config_path.exists() {
-        let content = fs::read_to_string(&config_path).unwrap_or_default();
-        serde_json::from_str::<AppConfig>(&content).unwrap_or_default()
-    } else {
-        println!("\n======================================================================");
-        println!("  FIRST TIME SETUP - Initial Setup (Saved to ~/.rainbow_contour_config.json)");
-        println!("======================================================================");
-
-        let company = prompt_input("Enter Default Company Name [PT PAMA PERSADA NUSANTARA]: ", false, "PT PAMA PERSADA NUSANTARA");
-        let title = prompt_input("Enter Default Rainbow Name [PIT A CUT & FILL MAP]: ", false, "PIT A CUT & FILL MAP");
-        let drawn = prompt_input("Enter Default Drawn By Name [Fikri Ardyantoro]: ", false, "Fikri Ardyantoro");
-
-        let new_cfg = AppConfig {
-            company_name: company,
-            rainbow_title: title,
-            drawn_by: drawn,
-        };
-
-        if let Ok(json) = serde_json::to_string_pretty(&new_cfg) {
-            let _ = fs::write(&config_path, json);
-        }
-        println!("----------------------------------------------------------------------\n");
-        new_cfg
-    };
-
-    if let Some(c) = arg_company { if !c.is_empty() { config.company_name = c; } }
-    if let Some(t) = arg_title { if !t.is_empty() { config.rainbow_title = t; } }
-    if let Some(d) = arg_drawn_by { if !d.is_empty() { config.drawn_by = d; } }
-
-    config
-}
+use std::path::Path;
 
 fn prompt_input(prompt_text: &str, required: bool, default_val: &str) -> String {
     loop {
-        print!("{}", prompt_text);
+        if !default_val.is_empty() {
+            print!("{} [{}]: ", prompt_text, default_val);
+        } else {
+            print!("{}: ", prompt_text);
+        }
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
         if io::stdin().read_line(&mut input).is_err() || input.is_empty() {
-            // EOF or pipe closed
             return default_val.to_string();
         }
 
@@ -113,25 +56,43 @@ fn prompt_file_path(prompt_text: &str, required: bool) -> String {
     }
 }
 
+pub fn extract_design_name_default(design_path: &str) -> String {
+    let p = Path::new(design_path);
+    if let Some(stem) = p.file_stem().and_then(|s| s.to_str()) {
+        if !stem.is_empty() {
+            return stem.to_string();
+        }
+    }
+    "Plan EOM Design".to_string()
+}
+
 fn main() {
     let args = cli::CliArgs::parse();
     println!("======================================================================");
     println!("  RAINBOW CONTOUR - Cut & Fill Difference Map Generator v1.0");
     println!("======================================================================");
 
+    // 1. Load or auto-generate config.dat
+    let mut config = EngineConfig::load_or_create(&args.config);
+    if let Some(c) = args.company { if !c.is_empty() { config.company_name = c; } }
+    if let Some(t) = args.rainbow_title { if !t.is_empty() { config.default_title = t; } }
+    if let Some(d) = args.drawn_by { if !d.is_empty() { config.drawn_by = d; } }
+    if let Some(s) = args.step { config.grid_step = s; }
+    if let Some(o) = args.outdir { if !o.is_empty() { config.default_outdir = o; } }
+
     let topo_path = match args.topo {
         Some(path) if !path.is_empty() => path,
-        _ => prompt_file_path("[1/3] Enter Topo DXF file path     : ", true),
+        _ => prompt_file_path("[1/3] Enter Topo DXF file path", true),
     };
 
     let design_path = match args.design {
         Some(path) if !path.is_empty() => path,
-        _ => prompt_file_path("[2/3] Enter Design DXF file path   : ", true),
+        _ => prompt_file_path("[2/3] Enter Design DXF file path", true),
     };
 
     let boundary_path = match args.boundary {
         Some(path) if !path.is_empty() => path,
-        _ => prompt_file_path("[3/3] Enter Boundary DXF path (opt): ", false),
+        _ => prompt_file_path("[3/3] Enter Boundary DXF path (opt)", false),
     };
 
     println!("\n----------------------------------------------------------------------");
@@ -144,7 +105,7 @@ fn main() {
         String::new()
     };
 
-    println!("Parsing Topo & Design 3D meshes...");
+    println!("Parsing Topo & Design 3D meshes (max edge: {:.0}m)...", config.max_tin_edge);
     let topo_mesh = parse_dxf_mesh(&topo_content).expect("Failed to parse Topo mesh");
     let design_mesh = parse_dxf_mesh(&design_content).expect("Failed to parse Design mesh");
     let design_lines = rainbow_contour::dxf::parse_dxf_styled_polylines(&design_content);
@@ -156,17 +117,12 @@ fn main() {
         }
     }
 
-    println!("Computing spatial grid delta (step = {}m)...", args.step);
-    let grid = compute_grid_delta(&topo_mesh, &design_mesh, &boundary, args.step);
-    let volume = calculate_volume(&grid, args.step);
+    println!("Computing spatial grid delta (step = {}m)...", config.grid_step);
+    let grid = compute_grid_delta(&topo_mesh, &design_mesh, &boundary, config.grid_step);
+    let volume = calculate_volume(&grid, config.grid_step);
 
     println!("Generating Marching Squares contour isolines...");
-    let levels = vec![
-        -20.0, -18.0, -16.0, -14.0, -12.0, -10.0, -8.0, -6.0, -4.0, -2.0,
-        0.0,
-        2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0,
-    ];
-    let isolines = generate_isolines(&grid, args.step, levels);
+    let isolines = generate_isolines(&grid, config.grid_step, config.contour_levels.clone());
     let dxf_vector = export_isolines_to_dxf(&isolines);
 
     println!("\n----------------------------------------------------------------------");
@@ -175,22 +131,22 @@ fn main() {
         volume.cut_m3, volume.fill_m3, volume.net_m3
     );
 
-    let config = load_or_init_config(args.company, args.rainbow_title, args.drawn_by);
-
     let topo_date = match args.topo_date {
         Some(td) if !td.is_empty() => td,
-        _ => prompt_input("Enter Topo Survey Date (e.g. 28 July 2026): ", true, "28 July 2026"),
+        _ => prompt_input("Enter Topo Survey Date", true, "28 July 2026"),
     };
 
+    // Auto-detect default Design Name from Design DXF filename
+    let default_design_name = extract_design_name_default(&design_path);
     let design_name = match args.design_name {
         Some(dn) if !dn.is_empty() => dn,
-        _ => prompt_input("Enter Design Name (e.g. Plan EOM July 2026): ", true, "Plan EOM July 2026"),
+        _ => prompt_input("Enter Design Name", true, &default_design_name),
     };
 
     let date_created_str = "29 July 2026".to_string();
 
     let kop_info = KopInfo {
-        title: &config.rainbow_title,
+        title: &config.default_title,
         company: &config.company_name,
         drawn_by: &config.drawn_by,
         date_created: &date_created_str,
@@ -198,7 +154,7 @@ fn main() {
         design_name: &design_name,
     };
 
-    let out_dir = Path::new(&args.outdir);
+    let out_dir = Path::new(&config.default_outdir);
     fs::create_dir_all(out_dir).expect("Failed to create output directory");
 
     let html_content = generate_html_viewer(&kop_info, &grid, &volume, &design_lines);
