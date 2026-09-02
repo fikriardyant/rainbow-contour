@@ -147,7 +147,14 @@ fn main() {
     println!("Parsing Topo & Design 3D meshes...");
     let topo_mesh = parse_dxf_mesh(&topo_content).expect("Failed to parse Topo mesh");
     let design_mesh = parse_dxf_mesh(&design_content).expect("Failed to parse Design mesh");
-    let boundary = parse_dxf_boundary(&boundary_content).expect("Failed to parse Boundary");
+    let design_lines = rainbow_contour::dxf::parse_dxf_styled_polylines(&design_content);
+    let mut boundary = parse_dxf_boundary(&boundary_content).expect("Failed to parse Boundary");
+    if boundary.is_empty() || (boundary.len() <= 4 && boundary[0].x == 0.0 && boundary[1].x == 100.0) {
+        if let Some(detected) = rainbow_contour::dxf::auto_detect_closed_boundary(&design_lines) {
+            println!("Auto-detected pit outer boundary crest limit ({} vertices)", detected.len());
+            boundary = detected;
+        }
+    }
 
     println!("Computing spatial grid delta (step = {}m)...", args.step);
     let grid = compute_grid_delta(&topo_mesh, &design_mesh, &boundary, args.step);
@@ -194,7 +201,7 @@ fn main() {
     let out_dir = Path::new(&args.outdir);
     fs::create_dir_all(out_dir).expect("Failed to create output directory");
 
-    let html_content = generate_html_viewer(&kop_info, &grid, &volume);
+    let html_content = generate_html_viewer(&kop_info, &grid, &volume, &design_lines);
     fs::write(out_dir.join("rainbow-viewer.html"), html_content)
         .expect("Failed to write rainbow-viewer.html");
 

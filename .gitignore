@@ -1,5 +1,8 @@
 target/
 demo_output/
 demo_fixtures/
+output*/
 *.dxf
 *.json
+!sample_demo_output/*.dxf
+!sample_demo_output/*.json

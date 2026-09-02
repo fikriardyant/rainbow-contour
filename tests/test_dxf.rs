@@ -1,4 +1,4 @@
-use rainbow_contour::dxf::{parse_dxf_mesh, Point3D, Triangle3D};
+use rainbow_contour::dxf::{parse_dxf_mesh, Point3D};
 
 #[test]
 fn test_parse_simple_dxf_3dface() {

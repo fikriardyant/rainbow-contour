@@ -26,9 +26,10 @@ fn test_generate_html_viewer_contains_neobrutalism_css() {
         topo_date: "28 July 2026",
         design_name: "Plan EOM July 2026",
     };
-    let html = generate_html_viewer(&kop, &grid, &summary);
+    let html = generate_html_viewer(&kop, &grid, &summary, &[]);
     assert!(html.contains("PETA RAINBOW CONTOUR"));
-    assert!(html.contains("map-frame"));
+    assert!(html.contains("pdf-kop-container"));
     assert!(html.contains("html2canvas"));
     assert!(html.contains("jspdf"));
+    assert!(html.contains("5.00 m³"));
 }
