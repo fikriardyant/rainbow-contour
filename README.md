@@ -1,6 +1,6 @@
 # 🌈 Rainbow Contour Engine
 
-> High-performance Rust CLI & A4 Kop PDF generator for Cut & Fill Difference Maps in Mining Engineering.
+> High-performance CLI & A4 Kop PDF generator for Cut & Fill Difference Maps in Mining Engineering.
 
 ![Rainbow Contour A4 Map Preview](./screenshots/preview.png)
 
@@ -8,21 +8,22 @@
 
 ## ⚡ Features
 
-- **TIN Surface & 3D Polyline Meshing**: Native Delaunay 2D Triangulation with 3D $Z$-interpolation supporting `3DFACE`, `POLYLINE`/`VERTEX`, `LWPOLYLINE` (2D/3D with elevations), `LINE`, and `POINT` entities directly from CAD.
-- **Seamless RLE Raster Heatmap Engine**: High-speed, lossless Run-Length Encoded raster bitmap renderer (< 500KB - 1.5MB HTML size) with zero memory lag and seamless anti-gap rendering.
-- **Auto-Detect Pit Outer Boundary**: Automatically detects and clips grid deltas to the outermost closed crest boundary if no external boundary file is supplied.
-- **Marching Squares Contours**: Generates vector isoline contours at $2\text{m}$ interval gradients ($\pm 20\text{m}$).
-- **Cut & Fill Volume Calculation**: Computes exact Cut ($m^3$), Fill ($m^3$), and Net ($m^3$) volumes based on cell area.
-- **Centralized `config.dat` Engine**: Reads and saves default project, survey, and calculation parameters directly from `config.dat`.
-- **A4 Landscape Mine Plan Kop**: Official mine engineering layout with double technical border, coordinate grid frame (UTM & Geographic), North Arrow, multi-level color legend, and metadata block.
-- **Direct PDF Export**: One-click high-resolution PDF download using `html2canvas-pro` + `jsPDF` (no browser print dialog required).
-- **Vector DXF Export**: Exports color-coded vector isolines with native CAD ACI colors directly to `.dxf` format for Civil 3D / Surpac.
+- **Double-Click Executable (`.bat` / `.sh`)**: Langsung jalankan tanpa perlu install Rust / Cargo di komputer user.
+- **TIN Surface & 3D Polyline Meshing**: Native Delaunay 2D Triangulation dengan 3D $Z$-interpolation untuk `3DFACE`, `POLYLINE`/`VERTEX`, `LWPOLYLINE` (2D/3D elevations), `LINE`, dan `POINT` langsung dari CAD.
+- **Seamless RLE Raster Heatmap Engine**: Lossless Run-Length Encoded raster bitmap viewer (< 500KB - 1.5MB) tanpa memory lag dan anti-bolong/celah pixel.
+- **Auto-Detect Pit Outer Boundary**: Otomatis mendeteksi closed crest limit terluar dari file Design DXF jika tanpa boundary eksplisit.
+- **Marching Squares Contours**: Menghasilkan garis kontur isoline vektor tiap gradien interval $2\text{m}$ ($\pm 20\text{m}$).
+- **Cut & Fill Volume Calculation**: Kalkulasi akurat volume Cut ($m^3$), Fill ($m^3$), dan Net ($m^3$) berbasis cell area.
+- **Centralized `config.dat` Engine**: Simpan & ubah parameter kalkulasi, default survey, dan Kop peta langsung dari file teks `config.dat`.
+- **A4 Landscape Mine Plan Kop**: Standar layout engineering tambang dengan double border, frame koordinat UTM & Geografis, North Arrow, legenda multi-level, dan tabel volume.
+- **Direct PDF Export**: Tombol 1-klik download PDF resolusi tinggi via `html2canvas-pro` + `jsPDF` tanpa popup print browser.
+- **Vector DXF Export**: Ekspor garis kontur 3DPolyline native ACI colors langsung ke `.dxf` untuk AutoCAD / Civil 3D / Surpac.
 
 ---
 
-## ⚙️ Configuration (`config.dat`)
+## ⚙️ Konfigurasi (`config.dat`)
 
-Seluruh parameter default, input file, kalkulasi, dan Kop peta diatur melalui file `config.dat` di root project. Anda dapat langsung mengedit file ini dengan text editor apapun:
+Seluruh parameter default, path file DXF, kalkulasi, dan Kop peta diatur melalui file `config.dat` di root folder:
 
 ```ini
 # ======================================================================
@@ -56,41 +57,38 @@ DEFAULT_OUTDIR=./output
 
 ---
 
-## 🚀 Quick Start & Tutorial
+## 🚀 Cara Menjalankan (Quick Start)
 
-### 1. Build & Install
-```bash
-git clone https://github.com/fikriardyant/Rainbow-Contour.git
-cd Rainbow-Contour
-cargo build --release
-```
+### 🪟 Pengguna Windows:
+1. Download package / binary release `rainbow-contour`.
+2. Klik ganda (Double-Click) file **`rainbow-contour.bat`**.
+3. Masukkan path file DXF pada prompt interaktif yang muncul di terminal.
 
-### 2. Jalankan Mode Interaktif (Prompt CLI)
-Cukup jalankan binary tanpa argumen. Sistem akan membaca default dari `config.dat`:
+### 🐧 Pengguna Linux / macOS:
+1. Buka terminal di folder project.
+2. Jalankan launcher script:
+   ```bash
+   ./rainbow-contour.sh
+   ```
+
+### 💻 Developer Mode (Menggunakan Cargo):
+Jika ingin meng-compile dari source:
 ```bash
 cargo run --release
 ```
-Alur prompt interaktif:
-1. `[1/3] Enter Topo DXF file path`: Masukkan path file Topo (contoh: `/path/to/topo.dxf`).
-2. `[2/3] Enter Design DXF file path`: Masukkan path file Design (contoh: `/path/to/design.dxf`).
-3. `[3/3] Enter Boundary DXF path (opt)`: Tekan `Enter` untuk auto-detect batas pit terluar dari file Design, atau masukkan path boundary jika ada.
-4. `Enter Topo Survey Date [28 July 2026]`: Tekan `Enter` untuk memakai default `config.dat`.
-5. `Enter Design Name [design_filename]`: Otomatis mengambil nama file design sebagai default. Tekan `Enter` untuk konfirmasi.
 
-### 3. Jalankan Mode Otomatis / Direct CLI Flags (One-Liner)
-Bisa langsung menjalankan pipeline dengan parameter penuh (akan meng-override nilai di `config.dat`):
-```bash
-cargo run --release -- \
-  --topo /path/to/topo.dxf \
-  --design /path/to/design.dxf \
-  --company "PT PAMA PERSADA NUSANTARA" \
-  --rainbow-title "PIT ALPHA CUT & FILL" \
-  --drawn-by "Fikri Ardyantoro" \
-  --topo-date "28 July 2026" \
-  --design-name "Plan EOM July 2026" \
-  --step 1.0 \
-  --outdir "./output"
-```
+---
+
+## 📝 Alur Prompt Interaktif CLI
+
+Saat `rainbow-contour.bat` atau `./rainbow-contour.sh` dijalankan:
+1. `[1/3] Enter Topo DXF file path`: Masukkan path file Topo (contoh: `D:/Survey/topo.dxf`).
+2. `[2/3] Enter Design DXF file path`: Masukkan path file Design (contoh: `D:/Design/pit_south.dxf`).
+3. `[3/3] Enter Boundary DXF path (opt)`: Tekan `Enter` untuk auto-detect batas pit terluar, atau ketik path file boundary jika ada.
+4. `Enter Topo Survey Date [28 July 2026]`: Tekan `Enter` untuk memakai nilai default `config.dat`.
+5. `Enter Design Name [pit_south]`: Otomatis mendeteksi nama file design sebagai default. Tekan `Enter` untuk konfirmasi.
+
+> **Tips:** Jika `TOPO_PATH` dan `DESIGN_PATH` sudah diisi di `config.dat`, program akan langsung memproses otomatis tanpa memunculkan prompt input file!
 
 ---
 
@@ -119,16 +117,7 @@ cargo run --release -- \
 
 ## 📁 Output Deliverables
 
-Setiap eksekusi menghasilkan 3 file siap pakai di folder output (`--outdir` atau `DEFAULT_OUTDIR`):
-1. **`rainbow-viewer.html`** — Standalone A4 Landscape Mine Map Viewer dengan tombol 1-klik download PDF Kop.
-2. **`rainbow-output.dxf`** — File vektor AutoCAD DXF multi-layer isoline kontur berwarna sesuai elevasi (kompatibel Civil 3D, Surpac, Minescape).
-3. **`volume-summary.json`** — Ringkasan data kuantitatif volume Cut, Fill, Net, dan area cell dalam format JSON.
-
----
-
-## 🛠️ Tech Stack
-
-- **Engine**: Rust (Edition 2021)
-- **TIN & Spatial**: Delaunator 2D Triangulation, Barycentric Z Interpolation, Marching Squares
-- **Layout & PDF**: HTML5 Canvas, Tailwind CSS, `html2canvas-pro`, `jsPDF`
-- **CAD Support**: 3DFACE, POLYLINE, VERTEX, LWPOLYLINE (2D/3D), LINE, POINT
+Setiap eksekusi menghasilkan 3 file di folder output (`./output` atau `DEFAULT_OUTDIR`):
+1. **`rainbow-viewer.html`** — A4 Landscape Kop Viewer interaktif dengan tombol 1-klik `DOWNLOAD PDF KOP`.
+2. **`rainbow-output.dxf`** — Garis kontur vektor 3D AutoCAD DXF warna native ACI (langsung bisa dibuka di AutoCAD, Civil 3D, Surpac, Minescape).
+3. **`volume-summary.json`** — Ringkasan data kuantitatif volume Cut, Fill, dan Net dalam format JSON.
