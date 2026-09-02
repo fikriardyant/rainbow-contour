@@ -42,9 +42,9 @@ fn prompt_input(prompt_text: &str, required: bool, default_val: &str) -> String 
     }
 }
 
-fn prompt_file_path(prompt_text: &str, required: bool) -> String {
+fn prompt_file_path(prompt_text: &str, required: bool, default_val: &str) -> String {
     loop {
-        let trimmed = prompt_input(prompt_text, required, "");
+        let trimmed = prompt_input(prompt_text, required, default_val);
         if trimmed.is_empty() && !required {
             return String::new();
         }
@@ -74,25 +74,33 @@ fn main() {
 
     // 1. Load or auto-generate config.dat
     let mut config = EngineConfig::load_or_create(&args.config);
+    if let Some(tp) = args.topo { if !tp.is_empty() { config.topo_path = tp; } }
+    if let Some(dp) = args.design { if !dp.is_empty() { config.design_path = dp; } }
     if let Some(c) = args.company { if !c.is_empty() { config.company_name = c; } }
     if let Some(t) = args.rainbow_title { if !t.is_empty() { config.default_title = t; } }
     if let Some(d) = args.drawn_by { if !d.is_empty() { config.drawn_by = d; } }
+    if let Some(td) = args.topo_date { if !td.is_empty() { config.topo_date = td; } }
+    if let Some(dn) = args.design_name { if !dn.is_empty() { config.design_name = dn; } }
     if let Some(s) = args.step { config.grid_step = s; }
     if let Some(o) = args.outdir { if !o.is_empty() { config.default_outdir = o; } }
 
-    let topo_path = match args.topo {
-        Some(path) if !path.is_empty() => path,
-        _ => prompt_file_path("[1/3] Enter Topo DXF file path", true),
+    let topo_path = if !config.topo_path.is_empty() && Path::new(&config.topo_path).exists() {
+        config.topo_path.clone()
+    } else {
+        let def_topo = if Path::new(&config.topo_path).exists() { &config.topo_path } else { "" };
+        prompt_file_path("[1/3] Enter Topo DXF file path", true, def_topo)
     };
 
-    let design_path = match args.design {
-        Some(path) if !path.is_empty() => path,
-        _ => prompt_file_path("[2/3] Enter Design DXF file path", true),
+    let design_path = if !config.design_path.is_empty() && Path::new(&config.design_path).exists() {
+        config.design_path.clone()
+    } else {
+        let def_des = if Path::new(&config.design_path).exists() { &config.design_path } else { "" };
+        prompt_file_path("[2/3] Enter Design DXF file path", true, def_des)
     };
 
     let boundary_path = match args.boundary {
         Some(path) if !path.is_empty() => path,
-        _ => prompt_file_path("[3/3] Enter Boundary DXF path (opt)", false),
+        _ => prompt_file_path("[3/3] Enter Boundary DXF path (opt)", false, ""),
     };
 
     println!("\n----------------------------------------------------------------------");
@@ -131,17 +139,20 @@ fn main() {
         volume.cut_m3, volume.fill_m3, volume.net_m3
     );
 
-    let topo_date = match args.topo_date {
-        Some(td) if !td.is_empty() => td,
-        _ => prompt_input("Enter Topo Survey Date", true, "28 July 2026"),
+    let topo_date = if !config.topo_date.is_empty() {
+        config.topo_date.clone()
+    } else {
+        prompt_input("Enter Topo Survey Date", true, "28 July 2026")
     };
 
-    // Auto-detect default Design Name from Design DXF filename
-    let default_design_name = extract_design_name_default(&design_path);
-    let design_name = match args.design_name {
-        Some(dn) if !dn.is_empty() => dn,
-        _ => prompt_input("Enter Design Name", true, &default_design_name),
+    // Auto-detect default Design Name from Design DXF filename or config.dat
+    let default_design_name = if !config.design_name.is_empty() {
+        config.design_name.clone()
+    } else {
+        extract_design_name_default(&design_path)
     };
+
+    let design_name = prompt_input("Enter Design Name", true, &default_design_name);
 
     let date_created_str = "29 July 2026".to_string();
 

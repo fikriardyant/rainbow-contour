@@ -1,12 +1,18 @@
 # ======================================================================
 # RAINBOW CONTOUR ENGINE CONFIGURATION (config.dat)
-# Edit parameter di bawah untuk mengubah default kalkulasi & kop peta
+# Edit parameter di bawah untuk mengubah default input, kalkulasi & kop peta
 # ======================================================================
+
+# --- DEFAULT INPUT DXF (Biarkan kosong jika ingin ditanyakan saat dijalankan) ---
+TOPO_PATH=
+DESIGN_PATH=
 
 # --- KOP & METADATA PETA ---
 COMPANY_NAME=PT PAMA PERSADA NUSANTARA
-DEFAULT_TITLE=PIT A CUT & FILL MAP
+RAINBOW_TITLE=PIT ALPHA CUT & FILL
 DRAWN_BY=Fikri Ardyantoro
+TOPO_DATE=28 July 2026
+DESIGN_NAME=
 
 # --- PARAMETER PERHITUNGAN GRID & SURFACE ---
 GRID_STEP=1.00
