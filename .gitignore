@@ -2,6 +2,7 @@ target/
 demo_output/
 demo_fixtures/
 output*/
+build/
 *.dxf
 *.json
 !sample_demo_output/*.dxf

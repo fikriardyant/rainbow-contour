@@ -9,6 +9,7 @@ pub struct KopInfo<'a> {
     pub date_created: &'a str,
     pub topo_date: &'a str,
     pub design_name: &'a str,
+    pub logo_data_uri: Option<&'a str>,
 }
 
 pub fn format_number_with_commas(val: f64) -> String {
@@ -146,6 +147,15 @@ pub fn generate_html_viewer(
 
     let cols = if max_x > min_x { ((max_x - min_x) / step).round() as usize + 1 } else { 1 };
     let rows = if max_y > min_y { ((max_y - min_y) / step).round() as usize + 1 } else { 1 };
+    let logo_html = if let Some(uri) = kop.logo_data_uri {
+        if !uri.is_empty() {
+            format!(r#"<div class="mb-2 flex items-center justify-center border-b border-slate-200 pb-1.5"><img src="{}" alt="Company Logo" class="max-w-[260px] max-h-[93px] w-auto h-auto object-contain" /></div>"#, uri)
+        } else {
+            String::new()
+        }
+    } else {
+        String::new()
+    };
 
     let mut grid_bytes = vec![0u8; cols * rows];
     for p in grid {
@@ -364,11 +374,12 @@ pub fn generate_html_viewer(
         <div class="w-[280px] border-2 border-slate-900 flex flex-col justify-between p-3 bg-white text-slate-900 overflow-hidden shrink-0">
             <!-- Header Block -->
             <div class="text-center border-b-2 border-slate-900 pb-2">
-                <h1 class="font-black text-[13px] uppercase tracking-tight text-slate-900 leading-tight">PETA RAINBOW CONTOUR</h1>
-                <h2 class="font-bold text-[11px] uppercase text-amber-700 mt-0.5 leading-tight">{}</h2>
-                <div class="mt-2 border border-slate-900 bg-amber-200 text-center font-black uppercase tracking-wider text-slate-900 text-[11px]" style="height: 26px; line-height: 26px;">
+                {}
+                <div class="mb-1.5 border border-slate-900 bg-amber-200 text-center font-black uppercase tracking-wider text-slate-900 text-[11px]" style="height: 26px; line-height: 26px;">
                     {}
                 </div>
+                <h1 class="font-black text-[13px] uppercase tracking-tight text-slate-900 leading-tight">PETA RAINBOW CONTOUR</h1>
+                <h2 class="font-bold text-[11px] uppercase text-amber-700 mt-0.5 leading-tight">{}</h2>
             </div>
 
             <!-- Metadata Table -->
@@ -648,8 +659,9 @@ pub fn generate_html_viewer(
         coord_top_mid_geo,
         coord_top_mid,
         coord_top_right,
-        kop.title,
+        logo_html,
         kop.company,
+        kop.title,
         kop.drawn_by,
         kop.date_created,
         kop.topo_date,

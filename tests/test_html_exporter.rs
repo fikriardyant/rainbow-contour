@@ -25,6 +25,7 @@ fn test_generate_html_viewer_contains_neobrutalism_css() {
         date_created: "29 July 2026",
         topo_date: "28 July 2026",
         design_name: "Plan EOM July 2026",
+        logo_data_uri: None,
     };
     let html = generate_html_viewer(&kop, &grid, &summary, &[]);
     assert!(html.contains("PETA RAINBOW CONTOUR"));

@@ -33,6 +33,12 @@ pub struct CliArgs {
     #[arg(long, help = "Design Name for Kop")]
     pub design_name: Option<String>,
 
+    #[arg(long, help = "Path to Company Logo PNG/JPG (default: company_logo.png)")]
+    pub logo: Option<String>,
+
+    #[arg(long, help = "Disable automatically opening HTML viewer in default browser")]
+    pub no_open: bool,
+
     #[arg(long, default_value = "config.dat", help = "Path to config.dat file")]
     pub config: String,
 }

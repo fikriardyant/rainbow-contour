@@ -1,6 +1,9 @@
 mod cli;
 use clap::Parser;
-use rainbow_contour::config::EngineConfig;
+use rainbow_contour::config::{
+    get_current_date_string, get_file_modified_date_string, load_image_as_data_uri,
+    open_file_in_default_browser, EngineConfig,
+};
 use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh};
 use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::compute_grid_delta;
@@ -74,15 +77,16 @@ fn main() {
 
     // 1. Load or auto-generate config.dat
     let mut config = EngineConfig::load_or_create(&args.config);
-    if let Some(tp) = args.topo { if !tp.is_empty() { config.topo_path = tp; } }
-    if let Some(dp) = args.design { if !dp.is_empty() { config.design_path = dp; } }
-    if let Some(c) = args.company { if !c.is_empty() { config.company_name = c; } }
-    if let Some(t) = args.rainbow_title { if !t.is_empty() { config.default_title = t; } }
-    if let Some(d) = args.drawn_by { if !d.is_empty() { config.drawn_by = d; } }
-    if let Some(td) = args.topo_date { if !td.is_empty() { config.topo_date = td; } }
-    if let Some(dn) = args.design_name { if !dn.is_empty() { config.design_name = dn; } }
+    if let Some(ref tp) = args.topo { if !tp.is_empty() { config.topo_path = tp.clone(); } }
+    if let Some(ref dp) = args.design { if !dp.is_empty() { config.design_path = dp.clone(); } }
+    if let Some(ref c) = args.company { if !c.is_empty() { config.company_name = c.clone(); } }
+    if let Some(ref t) = args.rainbow_title { if !t.is_empty() { config.default_title = t.clone(); } }
+    if let Some(ref d) = args.drawn_by { if !d.is_empty() { config.drawn_by = d.clone(); } }
+    if let Some(ref td) = args.topo_date { if !td.is_empty() { config.topo_date = td.clone(); } }
+    if let Some(ref dn) = args.design_name { if !dn.is_empty() { config.design_name = dn.clone(); } }
+    if let Some(ref lg) = args.logo { if !lg.is_empty() { config.company_logo_path = lg.clone(); } }
     if let Some(s) = args.step { config.grid_step = s; }
-    if let Some(o) = args.outdir { if !o.is_empty() { config.default_outdir = o; } }
+    if let Some(ref o) = args.outdir { if !o.is_empty() { config.default_outdir = o.clone(); } }
 
     let topo_path = if !config.topo_path.is_empty() && Path::new(&config.topo_path).exists() {
         config.topo_path.clone()
@@ -139,37 +143,99 @@ fn main() {
         volume.cut_m3, volume.fill_m3, volume.net_m3
     );
 
-    let topo_date = if !config.topo_date.is_empty() {
-        config.topo_date.clone()
+    // 1. Company Name: CLI > Prompt (default from config.dat)
+    let company_name = if let Some(ref c) = args.company {
+        c.clone()
     } else {
-        prompt_input("Enter Topo Survey Date", true, "28 July 2026")
+        prompt_input("Enter Company Name", true, &config.company_name)
     };
 
-    // Auto-detect default Design Name from Design DXF filename or config.dat
+    // 2. Map Title / Project Title: CLI > Prompt (default from config.dat)
+    let title = if let Some(ref t) = args.rainbow_title {
+        t.clone()
+    } else {
+        prompt_input("Enter Map Title / Project Title", true, &config.default_title)
+    };
+
+    // 3. Drawn By: CLI > Prompt (default from config.dat)
+    let drawn_by = if let Some(ref d) = args.drawn_by {
+        d.clone()
+    } else {
+        prompt_input("Enter Drawn By", true, &config.drawn_by)
+    };
+
+    // 4. Topo Survey Date: CLI > Prompt (default from Topo DXF file modified date or config.dat)
+    let default_topo_date = if !config.topo_date.is_empty() && config.topo_date != "28 July 2026" {
+        config.topo_date.clone()
+    } else {
+        get_file_modified_date_string(&topo_path)
+    };
+    let topo_date = if let Some(ref td) = args.topo_date {
+        td.clone()
+    } else {
+        prompt_input("Enter Topo Survey Date", true, &default_topo_date)
+    };
+
+    // 5. Design Name: CLI > Prompt (default from Design DXF filename or config.dat)
     let default_design_name = if !config.design_name.is_empty() {
         config.design_name.clone()
     } else {
         extract_design_name_default(&design_path)
     };
+    let design_name = if let Some(ref dn) = args.design_name {
+        dn.clone()
+    } else {
+        prompt_input("Enter Design Name", true, &default_design_name)
+    };
 
-    let design_name = prompt_input("Enter Design Name", true, &default_design_name);
+    // 6. Date Created: Automatically today's date
+    let date_created_str = get_current_date_string();
 
-    let date_created_str = "29 July 2026".to_string();
+    // 7. Company Logo: CLI > Prompt (default from company_logo.png or config.dat)
+    let default_logo_path = if !config.company_logo_path.is_empty() {
+        config.company_logo_path.clone()
+    } else {
+        "company_logo.png".to_string()
+    };
+    let logo_path = if let Some(ref lg) = args.logo {
+        lg.clone()
+    } else {
+        prompt_input("Enter Company Logo Path (press Enter to use default)", false, &default_logo_path)
+    };
+
+    // If user provided a different custom logo file, copy and save it as company_logo.png for subsequent runs
+    let final_logo_path = if !logo_path.is_empty() && Path::new(&logo_path).exists() {
+        let target_default = Path::new("company_logo.png");
+        if Path::new(&logo_path) != target_default {
+            if let Ok(_) = fs::copy(&logo_path, target_default) {
+                println!("  [Saved] Copied '{}' to 'company_logo.png' for next runs.", logo_path);
+            }
+        }
+        logo_path
+    } else if Path::new(&default_logo_path).exists() {
+        default_logo_path
+    } else {
+        String::new()
+    };
+
+    let logo_data_uri = load_image_as_data_uri(&final_logo_path);
 
     let kop_info = KopInfo {
-        title: &config.default_title,
-        company: &config.company_name,
-        drawn_by: &config.drawn_by,
+        title: &title,
+        company: &company_name,
+        drawn_by: &drawn_by,
         date_created: &date_created_str,
         topo_date: &topo_date,
         design_name: &design_name,
+        logo_data_uri: logo_data_uri.as_deref(),
     };
 
     let out_dir = Path::new(&config.default_outdir);
     fs::create_dir_all(out_dir).expect("Failed to create output directory");
 
+    let html_path = out_dir.join("rainbow-viewer.html");
     let html_content = generate_html_viewer(&kop_info, &grid, &volume, &design_lines);
-    fs::write(out_dir.join("rainbow-viewer.html"), html_content)
+    fs::write(&html_path, html_content)
         .expect("Failed to write rainbow-viewer.html");
 
     let json_content = serde_json::to_string_pretty(&volume).expect("Failed to serialize volume");
@@ -185,4 +251,10 @@ fn main() {
     println!("  - Vector DXF  : {}/rainbow-output.dxf", out_dir.display());
     println!("  - Volume JSON : {}/volume-summary.json", out_dir.display());
     println!("======================================================================\n");
+
+    // Automatically open in default web browser unless disabled
+    if config.auto_open_browser && !args.no_open {
+        println!("Opening Rainbow Map Viewer in your default web browser...");
+        open_file_in_default_browser(&html_path);
+    }
 }
