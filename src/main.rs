@@ -7,9 +7,9 @@ use rainbow_contour::config::{
 use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh};
 use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::compute_grid_delta;
-use rainbow_contour::html_exporter::{generate_html_viewer, KopInfo};
+use rainbow_contour::html_exporter::{generate_html_viewer_with_config, KopInfo};
 use rainbow_contour::marching_squares::generate_isolines;
-use rainbow_contour::volume::calculate_volume;
+use rainbow_contour::volume::calculate_volume_with_tolerance;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
@@ -131,7 +131,12 @@ fn main() {
 
     println!("Computing spatial grid delta (step = {}m)...", config.grid_step);
     let grid = compute_grid_delta(&topo_mesh, &design_mesh, &boundary, config.grid_step);
-    let volume = calculate_volume(&grid, config.grid_step);
+    let volume = calculate_volume_with_tolerance(
+        &grid,
+        config.grid_step,
+        config.ongrade_min,
+        config.ongrade_max,
+    );
 
     println!("Generating Marching Squares contour isolines...");
     let isolines = generate_isolines(&grid, config.grid_step, config.contour_levels.clone());
@@ -139,8 +144,8 @@ fn main() {
 
     println!("\n----------------------------------------------------------------------");
     println!(
-        "Volume Summary: Cut = {:.2} m³ | Fill = {:.2} m³ | Net = {:.2} m³",
-        volume.cut_m3, volume.fill_m3, volume.net_m3
+        "Volume Summary (Ongrade [{:+.2}m, {:+.2}m]): Cut = {:.2} m³ | Fill = {:.2} m³ | Ongrade Area = {:.2} m²",
+        config.ongrade_min, config.ongrade_max, volume.cut_m3, volume.fill_m3, volume.ongrade_area_m2
     );
 
     // 1. Company Name: CLI > Prompt (default from config.dat)
@@ -234,7 +239,7 @@ fn main() {
     fs::create_dir_all(out_dir).expect("Failed to create output directory");
 
     let html_path = out_dir.join("rainbow-viewer.html");
-    let html_content = generate_html_viewer(&kop_info, &grid, &volume, &design_lines);
+    let html_content = generate_html_viewer_with_config(&kop_info, &grid, &volume, &design_lines, &config);
     fs::write(&html_path, html_content)
         .expect("Failed to write rainbow-viewer.html");
 

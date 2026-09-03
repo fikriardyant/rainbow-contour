@@ -1,7 +1,10 @@
+use crate::config::{hex_to_rgba, EngineConfig};
 use crate::dxf::StyledPolyline;
 use crate::grid_engine::GridPointDelta;
 use crate::volume::VolumeSummary;
+use serde::Serialize;
 
+#[derive(Debug, Clone)]
 pub struct KopInfo<'a> {
     pub title: &'a str,
     pub company: &'a str,
@@ -12,39 +15,40 @@ pub struct KopInfo<'a> {
     pub logo_data_uri: Option<&'a str>,
 }
 
-pub fn format_number_with_commas(val: f64) -> String {
-    let formatted = format!("{:.2}", val);
-    let mut split = formatted.split('.');
-    let int_part = split.next().unwrap_or("0");
-    let dec_part = split.next().unwrap_or("00");
+fn format_number_with_commas(val: f64) -> String {
+    let rounded = format!("{:.2}", val);
+    let parts: Vec<&str> = rounded.split('.').collect();
+    let int_part = parts[0];
+    let dec_part = parts.get(1).unwrap_or(&"00");
 
     let is_negative = int_part.starts_with('-');
-    let raw_int = if is_negative { &int_part[1..] } else { int_part };
+    let raw_digits = if is_negative { &int_part[1..] } else { int_part };
 
     let mut result = String::new();
-    let chars: Vec<char> = raw_int.chars().rev().collect();
-    for (i, ch) in chars.iter().enumerate() {
-        if i > 0 && i % 3 == 0 {
+    let num_digits = raw_digits.len();
+
+    for (i, c) in raw_digits.chars().enumerate() {
+        result.push(c);
+        let rem = num_digits - i - 1;
+        if rem > 0 && rem % 3 == 0 {
             result.push(',');
         }
-        result.push(*ch);
     }
 
-    let formatted_int: String = result.chars().rev().collect();
     if is_negative {
-        format!("-{}.{}", formatted_int, dec_part)
+        format!("-{}.{}", result, dec_part)
     } else {
-        format!("{}.{}", formatted_int, dec_part)
+        format!("{}.{}", result, dec_part)
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 struct CompactStyledLine<'a> {
     c: &'a str,
     pts: Vec<[f64; 2]>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 struct HeatmapRasterMetadata {
     min_x: f64,
     max_x: f64,
@@ -56,7 +60,8 @@ struct HeatmapRasterMetadata {
     rle: Vec<u32>, // [color_id, count, color_id, count, ...]
 }
 
-fn delta_z_to_color_id(dz: f64) -> u32 {
+pub fn delta_z_to_color_id(dz: f64, ongrade_min: f64, ongrade_max: f64) -> u32 {
+    // Cut (Topo > Design, dz > 0)
     if dz > 16.0 {
         1
     } else if dz > 12.0 {
@@ -67,10 +72,10 @@ fn delta_z_to_color_id(dz: f64) -> u32 {
         4
     } else if dz > 2.0 {
         5
-    } else if dz > 0.0 {
+    } else if dz > ongrade_max {
         6
-    } else if dz == 0.0 {
-        7
+    } else if dz >= ongrade_min && dz <= ongrade_max {
+        7 // ON GRADE
     } else if dz >= -2.0 {
         8
     } else if dz >= -4.0 {
@@ -91,6 +96,17 @@ pub fn generate_html_viewer(
     grid: &[GridPointDelta],
     summary: &VolumeSummary,
     design_lines: &[StyledPolyline],
+) -> String {
+    let def_config = EngineConfig::default();
+    generate_html_viewer_with_config(kop, grid, summary, design_lines, &def_config)
+}
+
+pub fn generate_html_viewer_with_config(
+    kop: &KopInfo,
+    grid: &[GridPointDelta],
+    summary: &VolumeSummary,
+    design_lines: &[StyledPolyline],
+    config: &EngineConfig,
 ) -> String {
     // Dynamically compute bounding box coordinates from actual grid delta points
     let (min_x, max_x, min_y, max_y) = if !grid.is_empty() {
@@ -118,11 +134,7 @@ pub fn generate_html_viewer(
     let coord_left_mid_geo = format!("{:.2}°S", mid_lat.abs());
     let coord_left_bottom = format!("{:.0} mN", min_y);
 
-    // Efficient RLE Raster Encoding:
-    // Compresses millions of [x, y, dz] tuples from 60MB-260MB down to <500KB JSON payload.
-    // Instantaneous client-side canvas decompression with zero memory lag.
     let step = if grid.len() > 1 {
-        // Estimate step from grid sample
         let mut min_diff = f64::INFINITY;
         for i in 0..grid.len().min(100) {
             for j in (i + 1)..grid.len().min(100) {
@@ -162,7 +174,7 @@ pub fn generate_html_viewer(
         let gx = ((p.x - min_x) / step).round() as usize;
         let gy = ((p.y - min_y) / step).round() as usize;
         if gx < cols && gy < rows {
-            grid_bytes[gy * cols + gx] = delta_z_to_color_id(p.delta_z) as u8;
+            grid_bytes[gy * cols + gx] = delta_z_to_color_id(p.delta_z, config.ongrade_min, config.ongrade_max) as u8;
         }
     }
 
@@ -197,7 +209,6 @@ pub fn generate_html_viewer(
     };
     let raster_json = serde_json::to_string(&raster_meta).unwrap_or_else(|_| "{}".to_string());
 
-    // Serialize design styled polyline vectors with true DXF ACI / Layer colors
     let compact_design_lines: Vec<CompactStyledLine> = design_lines
         .iter()
         .map(|pl| CompactStyledLine {
@@ -206,6 +217,40 @@ pub fn generate_html_viewer(
         })
         .collect();
     let design_lines_json = serde_json::to_string(&compact_design_lines).unwrap_or_else(|_| "[]".to_string());
+
+    // Build paletteRGBA javascript array
+    let p_empty = [0, 0, 0, 0];
+    let p1 = hex_to_rgba(&config.color_cut_deep);
+    let p2 = hex_to_rgba(&config.color_cut_high);
+    let p3 = hex_to_rgba(&config.color_cut_mid);
+    let p4 = hex_to_rgba(&config.color_cut_low);
+    let p5 = hex_to_rgba(&config.color_cut_near);
+    let p6 = hex_to_rgba(&config.color_cut_to_grade);
+    let p7 = hex_to_rgba(&config.color_ongrade);
+    let p8 = hex_to_rgba(&config.color_fill_to_grade);
+    let p9 = hex_to_rgba(&config.color_fill_near);
+    let p10 = hex_to_rgba(&config.color_fill_low);
+    let p11 = hex_to_rgba(&config.color_fill_mid);
+    let p12 = hex_to_rgba(&config.color_fill_high);
+    let p13 = hex_to_rgba(&config.color_fill_deep);
+
+    let palette_js = format!(
+        "[\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}]\n]",
+        p_empty[0], p_empty[1], p_empty[2], p_empty[3],
+        p1[0], p1[1], p1[2], p1[3],
+        p2[0], p2[1], p2[2], p2[3],
+        p3[0], p3[1], p3[2], p3[3],
+        p4[0], p4[1], p4[2], p4[3],
+        p5[0], p5[1], p5[2], p5[3],
+        p6[0], p6[1], p6[2], p6[3],
+        p7[0], p7[1], p7[2], p7[3],
+        p8[0], p8[1], p8[2], p8[3],
+        p9[0], p9[1], p9[2], p9[3],
+        p10[0], p10[1], p10[2], p10[3],
+        p11[0], p11[1], p11[2], p11[3],
+        p12[0], p12[1], p12[2], p12[3],
+        p13[0], p13[1], p13[2], p13[3],
+    );
 
     format!(
         r##"<!DOCTYPE html>
@@ -268,18 +313,27 @@ pub fn generate_html_viewer(
                     alert('Library html2canvas belum terload. Mohon cek koneksi internet.');
                     return;
                 }}
+                
+                const btn = document.getElementById('export-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="animate-pulse">Generating PDF...</span>';
+                btn.disabled = true;
+
+                // Explicitly render canvas to raster snapshot before html2canvas capture
+                if (typeof drawContour === 'function') {{
+                    drawContour();
+                }}
 
                 const canvas = await html2canvasFn(element, {{
                     scale: 2,
                     useCORS: true,
-                    logging: false,
+                    allowTaint: true,
                     backgroundColor: '#ffffff',
-                    width: 1123,
-                    height: 794,
-                    windowWidth: 1123,
-                    windowHeight: 794,
+                    logging: false,
                     scrollX: 0,
-                    scrollY: 0
+                    scrollY: 0,
+                    windowWidth: 1123,
+                    windowHeight: 794
                 }});
 
                 const imgData = canvas.toDataURL('image/png', 1.0);
@@ -287,56 +341,58 @@ pub fn generate_html_viewer(
                 const pdf = new jsPDF({{
                     orientation: 'landscape',
                     unit: 'mm',
-                    format: 'a4',
-                    compress: true
+                    format: 'a4'
                 }});
 
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
+                pdf.addImage(imgData, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
+                pdf.save('rainbow-contour-kop.pdf');
 
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                pdf.save('Peta_Rainbow_Contour_' + (new Date().toISOString().slice(0,10)) + '.pdf');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }} catch (err) {{
+                console.error('PDF export error:', err);
                 alert('Gagal membuat PDF: ' + err.message);
+                const btn = document.getElementById('export-btn');
+                btn.innerHTML = 'DOWNLOAD PDF (A4 LANDSCAPE)';
+                btn.disabled = false;
             }}
         }}
     </script>
 </head>
-<body class="bg-slate-100 p-6 font-cad-title text-slate-900 flex flex-col justify-start items-center min-h-screen gap-4">
-    <!-- Top Action Bar (Outside Paper Sheet / Fixed Layout) -->
-    <header class="w-[1123px] flex justify-between items-center bg-white border-2 border-slate-900 p-3 shadow-[4px_4px_0px_rgba(15,23,42,1)]">
-        <div class="flex items-center gap-3">
-            <span class="text-xl">🌈</span>
-            <div>
-                <h1 class="font-black text-sm uppercase tracking-tight text-slate-900">RAINBOW CONTOUR ENGINE</h1>
-                <p class="text-[10px] text-slate-500 font-cad-mono uppercase">A4 Landscape Map Preview &amp; Export</p>
-            </div>
+<body class="bg-slate-200 min-h-screen flex flex-col items-center justify-start p-6 font-sans antialiased text-slate-800">
+
+    <!-- Top Action Toolbar (Outside PDF Container) -->
+    <div class="w-[1123px] flex items-center justify-between mb-3 bg-white p-3 border-2 border-slate-900 shadow-[4px_4px_0px_rgba(15,23,42,1)]">
+        <div class="flex items-center gap-2">
+            <span class="inline-block w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
+            <span class="font-black text-xs uppercase tracking-widest text-slate-900">PETA KONTUR CUT & FILL • SELESAI</span>
         </div>
         <button id="export-btn" onclick="downloadPDF()" class="bg-yellow-300 hover:bg-yellow-400 border-2 border-slate-900 px-4 py-2 font-black text-xs uppercase shadow-[2px_2px_0px_rgba(15,23,42,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer transition-colors">
-            📥 DOWNLOAD PDF KOP
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            DOWNLOAD PDF (A4 LANDSCAPE)
         </button>
-    </header>
+    </div>
 
-    <!-- Main A4 Landscape Map Layout Sheet -->
-    <div id="pdf-kop-container" class="map-frame shadow-2xl">
+    <!-- Exact A4 Landscape Container (297mm x 210mm = 1123px x 794px @ 96dpi) -->
+    <div id="pdf-kop-container" class="shadow-[8px_8px_0px_rgba(15,23,42,1)]">
         
-        <!-- Left: Map Area with Grid Coordinates Frame -->
-        <div class="flex-1 flex flex-col border-2 border-slate-900 overflow-hidden relative">
-            <!-- Top Coordinate Labels -->
-            <div class="h-6 bg-slate-200 border-b border-slate-900 flex justify-between px-8 items-center text-[10px] font-cad-mono font-bold text-slate-800 shrink-0">
+        <!-- Left: Map Canvas & Ruler Box -->
+        <div class="flex-1 h-full border-2 border-slate-900 relative flex flex-col bg-slate-900 overflow-hidden">
+            <!-- Top Coordinate Bar -->
+            <div class="h-6 bg-white border-b-2 border-slate-900 flex items-center justify-between px-3 text-[10px] font-bold text-slate-700 tracking-wider">
                 <span>{}</span>
-                <span>{}</span>
+                <span class="text-slate-400">{}</span>
                 <span>{}</span>
                 <span>{}</span>
             </div>
 
             <div class="flex-1 flex relative overflow-hidden">
                 <!-- Left Coordinate Labels: Rendered as SVG for 100% Matrix Precision in html2canvas -->
-                <div class="w-10 bg-slate-200 border-r-2 border-slate-900 flex flex-col justify-around items-center py-2 shrink-0 select-none">
+                <div class="w-10 bg-white border-r-2 border-slate-900 flex flex-col justify-around items-center py-2 shrink-0 select-none">
                     <svg width="36" height="100" class="overflow-visible">
                         <text x="-50" y="22" transform="rotate(-90)" fill="#0f172a" font-family="Consolas, monospace" font-size="10" font-weight="bold" text-anchor="middle">{}</text>
                     </svg>
-                    <div class="bg-amber-200 border border-amber-400 px-1 py-0.5 rounded-[2px] flex items-center justify-center">
+                    <div class="bg-amber-100 border border-amber-300 px-1 py-0.5 rounded-[2px] flex items-center justify-center">
                         <svg width="30" height="90" class="overflow-visible">
                             <text x="-45" y="19" transform="rotate(-90)" fill="#78350f" font-family="Consolas, monospace" font-size="10" font-weight="900" text-anchor="middle">{}</text>
                         </svg>
@@ -346,60 +402,55 @@ pub fn generate_html_viewer(
                     </svg>
                 </div>
 
-                <!-- Main Canvas (Rainbow Contour Heatmap & Vector Overlay) -->
-                <div class="flex-1 relative bg-slate-950 overflow-hidden">
-                    <canvas id="contourCanvas" class="w-full h-full object-contain"></canvas>
-                    
-                    <!-- North Arrow Overlay (Floating Top Right Map Canvas) -->
-                    <div class="absolute top-4 right-4 bg-white border-2 border-slate-900 px-2 py-1 text-center shadow flex flex-col items-center justify-center">
-                        <div class="font-black text-[11px] leading-none text-slate-900">N</div>
-                        <div class="text-[14px] font-black leading-none text-red-600 mt-0.5">▲</div>
-                    </div>
+                <!-- Main Canvas Area -->
+                <div class="flex-1 h-full relative bg-slate-950">
+                    <canvas id="contourCanvas" class="w-full h-full block"></canvas>
                 </div>
-
-                <!-- Right Map Inner Grid Ticks -->
-                <div class="w-2 bg-slate-200 border-l border-slate-900 shrink-0"></div>
             </div>
 
-            <!-- Bottom Coordinate Labels -->
-            <div class="h-6 bg-slate-200 border-t border-slate-900 flex justify-between px-8 items-center text-[10px] font-cad-mono font-bold text-slate-800 shrink-0">
+            <!-- Bottom Ruler Coordinate Bar -->
+            <div class="h-5 bg-white border-t-2 border-slate-900 flex items-center justify-between px-3 text-[9px] font-bold text-slate-700 tracking-wider">
                 <span>{}</span>
-                <span>{}</span>
+                <span class="text-slate-400">{}</span>
                 <span>{}</span>
                 <span>{}</span>
             </div>
         </div>
 
-        <!-- Right: Official Mine Plan Sidebar Kop -->
-        <div class="w-[280px] border-2 border-slate-900 flex flex-col justify-between p-3 bg-white text-slate-900 overflow-hidden shrink-0">
-            <!-- Header Block -->
-            <div class="text-center border-b-2 border-slate-900 pb-2">
+        <!-- Right: Official Mining KOP Sidebar -->
+        <div class="w-[300px] h-full flex flex-col justify-between border-2 border-slate-900 p-3 bg-white font-sans text-xs">
+            <!-- Header Logo & Identity -->
+            <div class="border-b-2 border-slate-900 pb-2">
                 {}
-                <div class="mb-1.5 border border-slate-900 bg-amber-200 text-center font-black uppercase tracking-wider text-slate-900 text-[11px]" style="height: 26px; line-height: 26px;">
-                    {}
-                </div>
-                <h1 class="font-black text-[13px] uppercase tracking-tight text-slate-900 leading-tight">PETA RAINBOW CONTOUR</h1>
-                <h2 class="font-bold text-[11px] uppercase text-amber-700 mt-0.5 leading-tight">{}</h2>
+                <div class="font-black text-sm uppercase tracking-tight text-slate-900 text-center leading-tight">{}</div>
+                <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest text-center mt-0.5">MINING OPERATIONS & ENGINEERING</div>
             </div>
 
-            <!-- Metadata Table -->
-            <div class="border-b-2 border-slate-900 py-2 text-[10px]">
+            <!-- Map Title -->
+            <div class="border-b-2 border-slate-900 py-2 text-center bg-yellow-100 -mx-3 px-3 border-t-2 border-slate-900">
+                <div class="text-[9px] font-black uppercase text-yellow-800 tracking-widest">MAP TITLE</div>
+                <div class="font-black text-base uppercase text-slate-900 tracking-tight leading-snug">{}</div>
+                <div class="text-[9px] font-bold text-slate-600">CUT & FILL ISOPACH DIFFERENCE</div>
+            </div>
+
+            <!-- Metadata Info Table -->
+            <div class="border-b-2 border-slate-900 py-1.5 text-[10px]">
                 <table class="w-full" style="border-collapse: collapse;">
-                    <tr style="border-bottom: 1px solid #e2e8f0; height: 18px;">
-                        <td class="font-semibold text-slate-500" style="vertical-align: middle;">Drawn By:</td>
-                        <td class="font-bold text-slate-900 text-right" style="vertical-align: middle;">{}</td>
+                    <tr style="height: 18px;">
+                        <td class="font-semibold text-slate-500" style="width: 42%; vertical-align: middle;">Drawn By:</td>
+                        <td class="font-bold text-slate-900 text-right" style="width: 58%; vertical-align: middle;">{}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #e2e8f0; height: 18px;">
+                    <tr style="height: 18px;">
                         <td class="font-semibold text-slate-500" style="vertical-align: middle;">Date Created:</td>
                         <td class="font-bold text-slate-900 text-right" style="vertical-align: middle;">{}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #e2e8f0; height: 18px;">
-                        <td class="font-semibold text-slate-500" style="vertical-align: middle;">Topo Date:</td>
+                    <tr style="height: 18px;">
+                        <td class="font-semibold text-slate-500" style="vertical-align: middle;">Survey/Topo Date:</td>
                         <td class="font-bold text-slate-900 text-right" style="vertical-align: middle;">{}</td>
                     </tr>
                     <tr style="height: 18px;">
-                        <td class="font-semibold text-slate-500" style="vertical-align: middle;">Design Name:</td>
-                        <td class="font-bold text-slate-900 text-right" style="vertical-align: middle;">{}</td>
+                        <td class="font-semibold text-slate-500" style="width: 40%; vertical-align: middle;">Design Name:</td>
+                        <td class="font-bold text-slate-900 text-right" style="width: 60%; vertical-align: middle; word-break: break-all;">{}</td>
                     </tr>
                 </table>
             </div>
@@ -412,59 +463,59 @@ pub fn generate_html_viewer(
                     <!-- Cut Rows -->
                     <tr style="height: 15px;">
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #991b1b; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">&gt; +16m (Cut)</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #dc2626; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">+12m to +16m</span>
-                        </td>
-                    </tr>
-                    <tr style="height: 15px;">
-                        <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #ef4444; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">+8m to +12m</span>
-                        </td>
-                        <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #f97316; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">+4m to +8m</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                     </tr>
                     <tr style="height: 15px;">
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #fbbf24; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">+2m to +4m</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #fde047; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">0m to +2m</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
+                        </td>
+                    </tr>
+                    <tr style="height: 15px;">
+                        <td style="width: 50%; vertical-align: middle;">
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
+                        </td>
+                        <td style="width: 50%; vertical-align: middle;">
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                     </tr>
 
                     <!-- On Grade Row -->
                     <tr>
-                        <td colspan="2" style="background-color: #d1fae5; border: 1px solid #10b981; height: 20px; vertical-align: middle; padding: 0 6px;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #10b981; border: 1px solid #0f172a; vertical-align: middle; margin-right: 6px;"></span><span style="vertical-align: middle; color: #064e3b; font-weight: 900; font-size: 10px; line-height: 12px;">0m (ON GRADE)</span>
+                        <td colspan="2" style="background-color: #f1f5f9; border: 1px solid #0f172a; height: 20px; vertical-align: middle; padding: 0 6px;">
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 6px;"></span><span style="vertical-align: middle; color: #0f172a; font-weight: 900; font-size: 9px; line-height: 12px;">{}</span>
                         </td>
                     </tr>
 
                     <!-- Fill Rows -->
                     <tr style="height: 15px;">
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #67e8f9; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">0m to -2m</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #06b6d4; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">-2m to -4m</span>
-                        </td>
-                    </tr>
-                    <tr style="height: 15px;">
-                        <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #60a5fa; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">-4m to -8m</span>
-                        </td>
-                        <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #2563eb; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">-8m to -12m</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                     </tr>
                     <tr style="height: 15px;">
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #4338ca; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">-12m to -16m</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                         <td style="width: 50%; vertical-align: middle;">
-                            <span style="display: inline-block; width: 12px; height: 12px; background-color: #581c87; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">&lt; -16m (Fill)</span>
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
+                        </td>
+                    </tr>
+                    <tr style="height: 15px;">
+                        <td style="width: 50%; vertical-align: middle;">
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
+                        </td>
+                        <td style="width: 50%; vertical-align: middle;">
+                            <span style="display: inline-block; width: 12px; height: 12px; background-color: {}; border: 1px solid #0f172a; vertical-align: middle; margin-right: 4px;"></span><span style="vertical-align: middle; line-height: 12px;">{}</span>
                         </td>
                     </tr>
                 </table>
@@ -494,22 +545,7 @@ pub fn generate_html_viewer(
         const rasterData = {};
         const designPolylines = {};
         
-        const paletteRGBA = [
-            [0, 0, 0, 0],         // 0: empty/transparent
-            [153, 27, 27, 255],   // 1: >16m #991b1b
-            [220, 38, 38, 255],   // 2: 12..16m #dc2626
-            [239, 68, 68, 255],   // 3: 8..12m #ef4444
-            [249, 115, 22, 255],  // 4: 4..8m #f97316
-            [251, 191, 36, 255],  // 5: 2..4m #fbbf24
-            [253, 224, 71, 255],  // 6: 0..2m #fde047
-            [16, 185, 129, 255],  // 7: 0m On Grade #10b981
-            [103, 232, 249, 255], // 8: 0..-2m #67e8f9
-            [6, 182, 212, 255],   // 9: -2..-4m #06b6d4
-            [96, 165, 250, 255],  // 10: -4..-8m #60a5fa
-            [37, 99, 235, 255],   // 11: -8..-12m #2563eb
-            [67, 56, 202, 255],   // 12: -12..-16m #4338ca
-            [88, 28, 135, 255]    // 13: <-16m #581c87
-        ];
+        const paletteRGBA = {};
 
         let offscreenCanvas = null;
 
@@ -537,7 +573,6 @@ pub fn generate_html_viewer(
                 const rgba = paletteRGBA[colorId] || [0,0,0,0];
 
                 for (let k = 0; k < count && pixelIdx < totalPixels; k++) {{
-                    // Flip Y in bitmap so top row is maxY
                     const gy = Math.floor(pixelIdx / cols);
                     const gx = pixelIdx % cols;
                     const flippedY = rows - 1 - gy;
@@ -560,7 +595,6 @@ pub fn generate_html_viewer(
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
 
-            // Hi-DPI Scaling (Device Pixel Ratio 2x)
             const dpr = window.devicePixelRatio || 2;
             const displayWidth = canvas.parentElement.clientWidth;
             const displayHeight = canvas.parentElement.clientHeight;
@@ -602,10 +636,10 @@ pub fn generate_html_viewer(
             const offsetX = (width - dx * scale) / 2;
             const offsetY = (height - dy * scale) / 2;
 
-            // 1. Draw Seamless Raster Heatmap Image (0 memory lag, zero gap / anti-bolong)
+            // 1. Draw Seamless Raster Heatmap Image
             const rasterImg = buildRasterImage();
             if (rasterImg) {{
-                ctx.imageSmoothingEnabled = false; // Keep sharp CAD pixel boundary
+                ctx.imageSmoothingEnabled = false;
                 const destW = dx * scale;
                 const destH = dy * scale;
                 const destX = offsetX;
@@ -614,27 +648,18 @@ pub fn generate_html_viewer(
                 ctx.drawImage(rasterImg, destX, destY, destW, destH);
             }}
 
-            // 2. Draw Overlay Vector CAD Design Lines with Original Colors (Crest, Toe, Ramp, Road)
+            // 2. Draw Overlay Vector CAD Design Lines
             if (designPolylines && designPolylines.length > 0) {{
                 ctx.lineWidth = 1.0;
-
-                for (let i = 0; i < designPolylines.length; i++) {{
-                    const item = designPolylines[i];
-                    const pts = item.pts;
-                    if (!pts || pts.length < 2) continue;
-
-                    ctx.strokeStyle = item.c || '#f8fafc';
+                for (const pl of designPolylines) {{
+                    if (!pl.pts || pl.pts.length < 2) continue;
+                    ctx.strokeStyle = pl.c || '#ffffff';
                     ctx.beginPath();
-                    for (let j = 0; j < pts.length; j++) {{
-                        const [x, y] = pts[j];
-                        const px = offsetX + (x - minX) * scale;
-                        const py = height - (offsetY + (y - minY) * scale);
-
-                        if (j === 0) {{
-                            ctx.moveTo(px, py);
-                        }} else {{
-                            ctx.lineTo(px, py);
-                        }}
+                    for (let i = 0; i < pl.pts.length; i++) {{
+                        const px = offsetX + (pl.pts[i][0] - minX) * scale;
+                        const py = height - (offsetY + (pl.pts[i][1] - minY) * scale);
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
                     }}
                     ctx.stroke();
                 }}
@@ -666,9 +691,37 @@ pub fn generate_html_viewer(
         kop.date_created,
         kop.topo_date,
         kop.design_name,
+        // Legend swatch colors & dynamic text from config
+        config.color_cut_deep,
+        config.label_cut_deep,
+        config.color_cut_high,
+        config.label_cut_high,
+        config.color_cut_mid,
+        config.label_cut_mid,
+        config.color_cut_low,
+        config.label_cut_low,
+        config.color_cut_near,
+        config.label_cut_near,
+        config.color_cut_to_grade,
+        config.label_cut_to_grade,
+        config.color_ongrade,
+        config.label_ongrade,
+        config.color_fill_to_grade,
+        config.label_fill_to_grade,
+        config.color_fill_near,
+        config.label_fill_near,
+        config.color_fill_low,
+        config.label_fill_low,
+        config.color_fill_mid,
+        config.label_fill_mid,
+        config.color_fill_high,
+        config.label_fill_high,
+        config.color_fill_deep,
+        config.label_fill_deep,
         format_number_with_commas(summary.cut_m3),
         format_number_with_commas(summary.fill_m3),
         raster_json,
-        design_lines_json
+        design_lines_json,
+        palette_js
     )
 }

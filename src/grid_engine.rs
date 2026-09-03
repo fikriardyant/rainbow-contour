@@ -159,7 +159,7 @@ pub fn compute_grid_delta(
                         y: curr_y,
                         z_topo: zt,
                         z_design: zd,
-                        delta_z: zd - zt,
+                        delta_z: zt - zd,
                     });
                 }
             }

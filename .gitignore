@@ -5,5 +5,4 @@ output*/
 build/
 *.dxf
 *.json
-!sample_demo_output/*.dxf
-!sample_demo_output/*.json
+sample_demo_output/

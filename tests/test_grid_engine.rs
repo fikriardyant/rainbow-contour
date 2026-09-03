@@ -23,5 +23,6 @@ fn test_compute_grid_delta_simple() {
 
     let grid = compute_grid_delta(&topo_mesh, &design_mesh, &boundary_polygon, 1.0);
     assert!(grid.len() > 0);
-    assert_eq!(grid[0].delta_z, 5.0); // 15.0 - 10.0 = 5.0 (Fill +5m)
+    // Mining standard: delta_z = zt - zd = 10.0 - 15.0 = -5.0 (Fill -5m)
+    assert_eq!(grid[0].delta_z, -5.0);
 }
