@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-09-03
+
+### Added
+- **Configurable Ongrade Tolerance Range**: Added `ONGRADE_MIN` and `ONGRADE_MAX` parameters (default `-0.50m` to `+0.50m`) in `config.dat` and engine calculation.
+- **Ongrade Surface Area**: Added calculation of `ongrade_area_m2` in volume summary for exact ongrade footprint tracking.
+- **Customizable High-Contrast Palette**: 13-slot vivid HEX color palette in `config.dat` replacing hardcoded colors for sharp visibility in both dark CAD canvas and white PDF exports.
+- **Configurable Legend Labels**: All 13 legend text labels can now be customized directly via `config.dat` (`LABEL_CUT_*`, `LABEL_ONGRADE`, `LABEL_FILL_*`).
+
+### Changed
+- **Unified & Clean Legend Format**: Standardized all legend range labels to compact, consistent notation (`> 16m (Cut)`, `12-16m`, `8-12m`, `4-8m`, `2-4m`, `0-2m`, `ON GRADE`, `0-2m`, `2-4m`, `4-8m`, `8-12m`, `12-16m`, `> 16m (Fill)`).
+- **Corrected Survey Elevation Differencing**: Realigned delta computation to standard mining convention ($\Delta Z = Z_{\text{topo}} - Z_{\text{design}}$) where positive values represent Cut (excavation) and negative values represent Fill.
+- **Enhanced KOP Sidebar Layout**: Replaced narrow div container on the left coordinate ruler with full-precision SVG matrix rendering, and added `word-break: break-all;` on long design names to prevent table overflow.
+- **Sample Output Cleanup**: Added `sample_demo_output/` to `.gitignore` and removed demo binaries from repository tracking.
+
+---
+
 ## [1.1.0] - 2026-09-02
 
 ### Added
