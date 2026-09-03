@@ -42,3 +42,9 @@ Dedicated development workhorse for **Rainbow Contour** (Auto Cut & Fill Differe
   - When given a clear instruction, adopt an immediate execution posture ("Iya").
   - Validate edge cases, hardware constraints, or technical gaps ("Tapi...").
   - If making domain-sensible engineering assumptions, **always present the assumption explicitly to Fikri for validation**.
+
+### 5. GitHub Release & Versioning Rules
+- **Release Title Format**: Every release title must follow: `vX.Y.Z (Short Description)` (e.g., `v1.1.1 (Configurable Ongrade Range, High-Contrast Palette & Clean Uniform Legend)`).
+- **Changelog Included**: The release body on GitHub must contain the detailed changelog sections (`Added`, `Changed`, `Fixed`) plus direct links to the multi-OS release binaries (Windows `.zip`, Linux `.tar.gz`, macOS ARM64 & Intel `.tar.gz`).
+- **Tag Discipline**: Do not push or bump git tags unless explicitly commanded by Fikri.
+- **Gitignore Safety**: Keep build artifacts, output directories (`output*/`, `sample_demo_output/`), and large survey attachments strictly gitignored.
