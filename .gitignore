@@ -6,3 +6,4 @@ build/
 *.dxf
 *.json
 sample_demo_output/
+graphify-out/

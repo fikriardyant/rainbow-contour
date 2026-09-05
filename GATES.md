@@ -1,25 +1,21 @@
-# Gates: Issue #1 Ongrade Tolerance Range, High-Contrast Colors, & Correct Cut/Fill Logic
+# Gates: Issue #3 Small Surface Adaptive Triangulation & Smooth Contour Generation
 
-OWNS: src/config.rs, src/grid_engine.rs, src/html_exporter.rs, src/volume.rs, src/main.rs, config.dat, tests/**
+OWNS: src/dxf.rs, src/grid_engine.rs, src/marching_squares.rs, src/main.rs, tests/**
 
-Scope: Fix inverted cut/fill logic (Topo vs Design), configurable ongrade tolerance range in config.dat, customizable high-contrast color palette, and synchronized legend/raster rendering.
+Scope: Fix oversized triangles on small designs (Issue #3) via configurable and adaptive TIN triangulation parameters, prevent void-spanning edges, implement true 2D Marching Squares with linear edge interpolation for smooth isolines, and apply adaptive grid sampling for small surfaces while leaving Kop surat and boundary logic strictly untouched.
 
-- [x] G1: EngineConfig parses ongrade tolerance and custom color palette from config.dat
-  CHECK: cargo test --test test_config test_config_ongrade_and_custom_colors -- --exact
-  EXPECT: test test_config_ongrade_and_custom_colors ... ok
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/home/cells/Documents/Antigravity Project/Rainbow-Contour; path=44c2620c68ad/42 entries; EXPECT=matched; output-sha256=146f035223eca25d286458239568fe37d51ae2cdd33abdc6b84c285c96fd9a33; output-bytes=319
+- [x] G1: DXF parser accepts configurable parameters and applies adaptive densification for small designs
+  CHECK: cargo test --test test_dxf_adaptive_triangulation test_dxf_adaptive_densification -- --exact
+  EXPECT: test test_dxf_adaptive_densification ... ok
 
-- [x] G2: Cut and Fill logic is mathematically correct (Topo > Design is Cut, Topo < Design is Fill)
-  CHECK: cargo test --test test_volume test_cut_fill_definition_and_ongrade -- --exact
-  EXPECT: test test_cut_fill_definition_and_ongrade ... ok
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/home/cells/Documents/Antigravity Project/Rainbow-Contour; path=44c2620c68ad/42 entries; EXPECT=matched; output-sha256=026f3b564d44a33d832044233539b8e2201f53d067db6d84837d05252e5bcc3f; output-bytes=318
+- [x] G2: Small surface triangulation generates fine, non-faceted triangles with bounded edge lengths
+  CHECK: cargo test --test test_dxf_adaptive_triangulation test_small_surface_triangulation_bounds -- --exact
+  EXPECT: test test_small_surface_triangulation_bounds ... ok
 
-- [x] G3: HTML exporter renders custom high-contrast colors and dynamic ongrade range in canvas & legend
-  CHECK: cargo test --test test_html_exporter test_html_exporter_custom_colors_and_ongrade -- --exact
-  EXPECT: test test_html_exporter_custom_colors_and_ongrade ... ok
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/home/cells/Documents/Antigravity Project/Rainbow-Contour; path=44c2620c68ad/42 entries; EXPECT=matched; output-sha256=4c9c6f145f4bf1de975d91715e3205c6d76cd6bdb67ab11c0d16b97b5cbb1b3f; output-bytes=340
+- [x] G3: Marching squares implements true 2D edge-crossing interpolation for smooth, non-jagged isolines
+  CHECK: cargo test --test test_dxf_exporter test_marching_squares_linear_interpolation -- --exact
+  EXPECT: test test_marching_squares_linear_interpolation ... ok
 
-- [x] G4: Full CLI and integration suite pass with backward-compatible defaults
-  CHECK: cargo test --test test_cli --test test_e2e_pipeline --test test_wrappers
+- [x] G4: Full test suite and regression checks pass without altering Kop surat or Issue #2 boundary logic
+  CHECK: cargo test --bins --tests
   EXPECT: test test_launcher_scripts_exist ... ok
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/home/cells/Documents/Antigravity Project/Rainbow-Contour; path=44c2620c68ad/42 entries; EXPECT=matched; output-sha256=5d0c4e88ad302d9d371ef8970b1bc8598eb802c63d9b6cb93de7bb512516fc07; output-bytes=2506

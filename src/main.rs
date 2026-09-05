@@ -4,7 +4,7 @@ use rainbow_contour::config::{
     get_current_date_string, get_file_modified_date_string, load_image_as_data_uri,
     open_file_in_default_browser, EngineConfig,
 };
-use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh};
+use rainbow_contour::dxf::{parse_dxf_boundary, parse_dxf_mesh_with_params};
 use rainbow_contour::dxf_exporter::export_isolines_to_dxf;
 use rainbow_contour::grid_engine::compute_grid_delta;
 use rainbow_contour::html_exporter::{generate_html_viewer_with_config, KopInfo};
@@ -118,8 +118,18 @@ fn main() {
     };
 
     println!("Parsing Topo & Design 3D meshes (max edge: {:.0}m)...", config.max_tin_edge);
-    let topo_mesh = parse_dxf_mesh(&topo_content).expect("Failed to parse Topo mesh");
-    let design_mesh = parse_dxf_mesh(&design_content).expect("Failed to parse Design mesh");
+    let topo_mesh = parse_dxf_mesh_with_params(
+        &topo_content,
+        config.weeding_min_dist,
+        config.supplement_max_dist,
+        config.max_tin_edge,
+    ).expect("Failed to parse Topo mesh");
+    let design_mesh = parse_dxf_mesh_with_params(
+        &design_content,
+        config.weeding_min_dist,
+        config.supplement_max_dist,
+        config.max_tin_edge,
+    ).expect("Failed to parse Design mesh");
     let design_lines = rainbow_contour::dxf::parse_dxf_styled_polylines(&design_content);
     let mut boundary = parse_dxf_boundary(&boundary_content).expect("Failed to parse Boundary");
     if boundary.is_empty() || (boundary.len() <= 4 && boundary[0].x == 0.0 && boundary[1].x == 100.0) {

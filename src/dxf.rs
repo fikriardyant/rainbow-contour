@@ -102,8 +102,8 @@ pub fn process_polyline_points(points: &[Point3D], min_dist: f64, max_dist: f64)
 }
 
 /// Triangulate 3D points using 2D Delaunay triangulation (XY projection)
-/// with max edge limit = 300m to accommodate wide pit floors, crest-toe spans, and benches
-pub fn triangulate_points_delaunay(points: &[Point3D]) -> Vec<Triangle3D> {
+/// with customizable max edge limit to accommodate both small designs and wide pit floors
+pub fn triangulate_points_delaunay_with_max_edge(points: &[Point3D], max_edge: f64) -> Vec<Triangle3D> {
     if points.len() < 3 {
         return Vec::new();
     }
@@ -116,8 +116,7 @@ pub fn triangulate_points_delaunay(points: &[Point3D]) -> Vec<Triangle3D> {
     let result = triangulate(&del_points);
     let mut triangles = Vec::with_capacity(result.triangles.len() / 3);
 
-    // Max allowed edge length for mining surface interpolation (300m)
-    let max_edge_sq = 300.0 * 300.0;
+    let max_edge_sq = max_edge * max_edge;
 
     for i in (0..result.triangles.len()).step_by(3) {
         let i0 = result.triangles[i];
@@ -137,6 +136,12 @@ pub fn triangulate_points_delaunay(points: &[Point3D]) -> Vec<Triangle3D> {
     }
 
     triangles
+}
+
+/// Triangulate 3D points using 2D Delaunay triangulation (XY projection)
+/// with default max edge limit = 300m
+pub fn triangulate_points_delaunay(points: &[Point3D]) -> Vec<Triangle3D> {
+    triangulate_points_delaunay_with_max_edge(points, 300.0)
 }
 
 pub fn parse_dxf_styled_polylines(content: &str) -> Vec<StyledPolyline> {
@@ -339,6 +344,15 @@ pub fn parse_dxf_styled_polylines(content: &str) -> Vec<StyledPolyline> {
 }
 
 pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
+    parse_dxf_mesh_with_params(content, 0.5, 10.0, 300.0)
+}
+
+pub fn parse_dxf_mesh_with_params(
+    content: &str,
+    min_dist: f64,
+    max_dist: f64,
+    max_edge: f64,
+) -> Result<Vec<Triangle3D>, String> {
     let lines: Vec<&str> = content.lines().map(|l| l.trim()).collect();
     let mut triangles = Vec::new();
     let mut all_points = Vec::new();
@@ -348,6 +362,10 @@ pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
     let mut in_pl = false;
 
     let mut idx = 0;
+
+    // First, collect raw polylines and points to inspect bounding box for adaptive densification
+    let mut raw_polylines: Vec<Vec<Point3D>> = Vec::new();
+    let mut raw_points: Vec<Point3D> = Vec::new();
 
     while idx < lines.len() {
         if lines[idx] == "0" && idx + 1 < lines.len() {
@@ -400,15 +418,13 @@ pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
                     continue;
                 } else if entity_type == "POLYLINE" {
                     if in_pl && !current_pl_pts.is_empty() {
-                        let processed = process_polyline_points(&current_pl_pts, 0.5, 10.0);
-                        all_points.extend(processed);
+                        raw_polylines.push(current_pl_pts.clone());
                         current_pl_pts.clear();
                     }
                     in_pl = true;
                 } else if entity_type == "SEQEND" {
                     if in_pl && !current_pl_pts.is_empty() {
-                        let processed = process_polyline_points(&current_pl_pts, 0.5, 10.0);
-                        all_points.extend(processed);
+                        raw_polylines.push(current_pl_pts.clone());
                         current_pl_pts.clear();
                     }
                     in_pl = false;
@@ -459,8 +475,7 @@ pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
                         idx += 2;
                     }
                     if !lw_pts.is_empty() {
-                        let processed = process_polyline_points(&lw_pts, 0.5, 10.0);
-                        all_points.extend(processed);
+                        raw_polylines.push(lw_pts);
                     }
                     continue;
                 } else if entity_type == "POINT" {
@@ -480,7 +495,7 @@ pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
                         idx += 2;
                     }
                     if pt.x.abs() < 1e8 && pt.y.abs() < 1e8 {
-                        all_points.push(pt);
+                        raw_points.push(pt);
                     }
                     continue;
                 }
@@ -490,14 +505,59 @@ pub fn parse_dxf_mesh(content: &str) -> Result<Vec<Triangle3D>, String> {
     }
 
     if in_pl && !current_pl_pts.is_empty() {
-        let processed = process_polyline_points(&current_pl_pts, 0.5, 10.0);
-        all_points.extend(processed);
+        raw_polylines.push(current_pl_pts);
     }
 
+    // If 3DFACE triangles were present, return them directly
     if !triangles.is_empty() {
-        Ok(triangles)
-    } else if !all_points.is_empty() {
-        Ok(triangulate_points_delaunay(&all_points))
+        return Ok(triangles);
+    }
+
+    // Determine bounding box diagonal of all polylines & points
+    let mut min_x = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+
+    for pl in &raw_polylines {
+        for pt in pl {
+            min_x = min_x.min(pt.x);
+            max_x = max_x.max(pt.x);
+            min_y = min_y.min(pt.y);
+            max_y = max_y.max(pt.y);
+        }
+    }
+    for pt in &raw_points {
+        min_x = min_x.min(pt.x);
+        max_x = max_x.max(pt.x);
+        min_y = min_y.min(pt.y);
+        max_y = max_y.max(pt.y);
+    }
+
+    let diag = if min_x <= max_x && min_y <= max_y {
+        ((max_x - min_x).powi(2) + (max_y - min_y).powi(2)).sqrt()
+    } else {
+        0.0
+    };
+
+    // Adaptive densification & edge thresholding for small surface:
+    // If user explicitly asks for subdivision or max_dist is provided, respect it.
+    // If diagonal < 100m, restrict max_edge to prevent Delaunay spanning wide voids across the small boundary.
+    let (effective_min_dist, effective_max_dist, effective_max_edge) = if diag > 0.0 && diag < 100.0 {
+        let adapt_max_edge = max_edge.min((diag * 1.5).max(10.0));
+        (min_dist, max_dist, adapt_max_edge)
+    } else {
+        (min_dist, max_dist, max_edge)
+    };
+
+    for pl in &raw_polylines {
+        let processed = process_polyline_points(pl, effective_min_dist, effective_max_dist);
+        all_points.extend(processed);
+    }
+    all_points.extend(raw_points);
+
+    if !all_points.is_empty() {
+        Ok(triangulate_points_delaunay_with_max_edge(&all_points, effective_max_edge))
     } else {
         Ok(Vec::new())
     }

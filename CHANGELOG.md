@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Small Surface Adaptive Triangulation (Issue #3)**: Connected `MAX_TIN_EDGE`, `WEEDING_MIN_DIST`, and `SUPPLEMENT_MAX_DIST` from `config.dat` to `parse_dxf_mesh_with_params`. Added adaptive edge bounds for small surfaces (`diag < 100m`) preventing Delaunay triangles from stretching across voids.
+- **Smooth 2D Marching Squares Isolines**: Upgraded contour generator from 1D point scanline to true 2D Marching Squares with linear edge interpolation, eliminating jagged/faceted contour lines.
+- **Gitignore Cleanliness**: Added `graphify-out/` to `.gitignore` to prevent graph index cache from bloating repository tracking.
+
+---
+
 ## [1.1.1] - 2026-09-03
 
 ### Added
