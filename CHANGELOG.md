@@ -7,19 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.2.0] - 2026-09-08
 
 ### Added
-- **Interactive CAD Zoom & Pan**: Added mouse wheel zoom and drag-pan to HTML viewer canvas with crisp real-time vector re-rendering and automatic HUD concealment during PDF export.
+- **Interactive CAD Viewport Navigation**: Added cursor-centered mouse wheel zoom (0.2x to 30x) and drag panning to the HTML viewer canvas. Design polylines re-render dynamically as sharp vectors on every redraw.
+- **Automated HUD Concealment**: Floating navigation buttons hide automatically during PDF export to keep the exported A4 landscape sheet clean.
 
 ### Changed
-- **Default Grid Step 0.50m**: Synchronized default `GRID_STEP` across `config.dat` and Rust engine code to `0.50m` for sharper contour boundaries.
+- **Config-Driven 0.50m Default Sampling**: Updated the default `GRID_STEP` in `config.dat` and engine code to 0.50m, providing 4x higher resolution over the previous 1.0m baseline while keeping file sizes lightweight.
 
 ### Fixed
-- **Small Surface Adaptive Triangulation (Issue #3)**: Connected `MAX_TIN_EDGE`, `WEEDING_MIN_DIST`, and `SUPPLEMENT_MAX_DIST` from `config.dat` to `parse_dxf_mesh_with_params`. Added adaptive edge bounds for small surfaces (`diag < 100m`) preventing Delaunay triangles from stretching across voids.
-- **Smooth 2D Marching Squares Isolines**: Upgraded contour generator from 1D point scanline to true 2D Marching Squares with linear edge interpolation, eliminating jagged/faceted contour lines.
-- **Sub-decimeter Grid Step Export**: Fixed `html_exporter` step detection to directly utilize `config.grid_step` from `config.dat`, preserving small steps (0.05m, 0.25m, 0.50m) without falling back to 1.0m.
-- **Gitignore Cleanliness**: Added `graphify-out/` and `trial_intan/` to `.gitignore` to prevent graph index cache and test surveys from bloating repository tracking.
+- **Small Surface Adaptive Triangulation**: Connected `MAX_TIN_EDGE`, `WEEDING_MIN_DIST`, and `SUPPLEMENT_MAX_DIST` from `config.dat` to the mesh parser. The engine adapts triangle edge limits for small models (diagonal under 100m) to stop Delaunay triangles from stretching across voids.
+- **Smooth 2D Marching Squares Isolines**: Upgraded contour generation with per-cell linear edge interpolation, removing faceted stair-step artifacts from isolines.
+- **Preserved Sub-Decimeter Grid Steps**: Fixed `html_exporter` step detection to read `config.grid_step` directly from configuration, preserving custom steps like 0.05m or 0.25m without falling back to 1.0m.
+- **Repository Cleanliness**: Added `trial_intan/` and `graphify-out/` to `.gitignore` to keep raw survey attachments and local graph indexes untracked.
 
 ---
 
