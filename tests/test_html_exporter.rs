@@ -67,3 +67,30 @@ fn test_html_exporter_custom_colors_and_ongrade() {
     assert!(html.contains("#00FF66"));
     assert!(html.contains("0-2m"));
 }
+
+#[test]
+fn test_html_exporter_contains_interactive_cad_hud_and_zoom() {
+    let kop = KopInfo {
+        title: "Pit A",
+        company: "PT PAMA PERSADA NUSANTARA",
+        drawn_by: "Fikri Ardyantoro",
+        date_created: "3 September 2026",
+        topo_date: "3 September 2026",
+        design_name: "Plan EOM",
+        logo_data_uri: None,
+    };
+    let summary = VolumeSummary {
+        cut_m3: 0.0,
+        fill_m3: 0.0,
+        net_m3: 0.0,
+        cell_area_m2: 1.0,
+        ongrade_area_m2: 0.0,
+    };
+    let html = generate_html_viewer(&kop, &[], &summary, &[]);
+    assert!(html.contains("cad-hud-controls"));
+    assert!(html.contains("zoomIn()"));
+    assert!(html.contains("zoomOut()"));
+    assert!(html.contains("resetView()"));
+    assert!(html.contains("zoomReadout"));
+}
+

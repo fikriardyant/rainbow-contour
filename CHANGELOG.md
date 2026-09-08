@@ -9,10 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Interactive CAD Zoom & Pan**: Added mouse wheel zoom and drag-pan to HTML viewer canvas with crisp real-time vector re-rendering and automatic HUD concealment during PDF export.
+
+### Changed
+- **Default Grid Step 0.50m**: Synchronized default `GRID_STEP` across `config.dat` and Rust engine code to `0.50m` for sharper contour boundaries.
+
 ### Fixed
 - **Small Surface Adaptive Triangulation (Issue #3)**: Connected `MAX_TIN_EDGE`, `WEEDING_MIN_DIST`, and `SUPPLEMENT_MAX_DIST` from `config.dat` to `parse_dxf_mesh_with_params`. Added adaptive edge bounds for small surfaces (`diag < 100m`) preventing Delaunay triangles from stretching across voids.
 - **Smooth 2D Marching Squares Isolines**: Upgraded contour generator from 1D point scanline to true 2D Marching Squares with linear edge interpolation, eliminating jagged/faceted contour lines.
-- **Gitignore Cleanliness**: Added `graphify-out/` to `.gitignore` to prevent graph index cache from bloating repository tracking.
+- **Sub-decimeter Grid Step Export**: Fixed `html_exporter` step detection to directly utilize `config.grid_step` from `config.dat`, preserving small steps (0.05m, 0.25m, 0.50m) without falling back to 1.0m.
+- **Gitignore Cleanliness**: Added `graphify-out/` and `trial_intan/` to `.gitignore` to prevent graph index cache and test surveys from bloating repository tracking.
 
 ---
 

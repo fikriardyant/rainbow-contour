@@ -134,22 +134,24 @@ pub fn generate_html_viewer_with_config(
     let coord_left_mid_geo = format!("{:.2}°S", mid_lat.abs());
     let coord_left_bottom = format!("{:.0} mN", min_y);
 
-    let step = if grid.len() > 1 {
+    let step = if config.grid_step > 0.001 {
+        config.grid_step
+    } else if grid.len() > 1 {
         let mut min_diff = f64::INFINITY;
         for i in 0..grid.len().min(100) {
             for j in (i + 1)..grid.len().min(100) {
                 let dx = (grid[i].x - grid[j].x).abs();
                 let dy = (grid[i].y - grid[j].y).abs();
-                if dx > 0.001 && dx < min_diff {
+                if dx > 0.0001 && dx < min_diff {
                     min_diff = dx;
                 }
-                if dy > 0.001 && dy < min_diff {
+                if dy > 0.0001 && dy < min_diff {
                     min_diff = dy;
                 }
             }
         }
-        if min_diff.is_finite() && min_diff >= 0.1 {
-            (min_diff * 100.0).round() / 100.0
+        if min_diff.is_finite() && min_diff >= 0.001 {
+            (min_diff * 1000.0).round() / 1000.0
         } else {
             1.0
         }
@@ -319,10 +321,16 @@ pub fn generate_html_viewer_with_config(
                 btn.innerHTML = '<span class="animate-pulse">Generating PDF...</span>';
                 btn.disabled = true;
 
-                // Explicitly render canvas to raster snapshot before html2canvas capture
-                if (typeof drawContour === 'function') {{
+                // Explicitly render canvas to fit extents snapshot before html2canvas capture
+                if (typeof resetView === 'function') {{
+                    resetView();
+                }} else if (typeof drawContour === 'function') {{
                     drawContour();
                 }}
+
+                // Temporarily hide CAD HUD controls during PDF print snapshot
+                const hud = document.getElementById('cad-hud-controls');
+                if (hud) hud.style.display = 'none';
 
                 const canvas = await html2canvasFn(element, {{
                     scale: 2,
@@ -335,6 +343,8 @@ pub fn generate_html_viewer_with_config(
                     windowWidth: 1123,
                     windowHeight: 794
                 }});
+
+                if (hud) hud.style.display = 'flex';
 
                 const imgData = canvas.toDataURL('image/png', 1.0);
                 const {{ jsPDF }} = window.jspdf;
@@ -351,6 +361,8 @@ pub fn generate_html_viewer_with_config(
                 btn.disabled = false;
             }} catch (err) {{
                 console.error('PDF export error:', err);
+                const hud = document.getElementById('cad-hud-controls');
+                if (hud) hud.style.display = 'flex';
                 alert('Gagal membuat PDF: ' + err.message);
                 const btn = document.getElementById('export-btn');
                 btn.innerHTML = 'DOWNLOAD PDF (A4 LANDSCAPE)';
@@ -403,8 +415,16 @@ pub fn generate_html_viewer_with_config(
                 </div>
 
                 <!-- Main Canvas Area -->
-                <div class="flex-1 h-full relative bg-slate-950">
-                    <canvas id="contourCanvas" class="w-full h-full block"></canvas>
+                <div class="flex-1 h-full relative bg-slate-950 overflow-hidden select-none">
+                    <canvas id="contourCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+                    
+                    <!-- Floating CAD Navigation HUD (Zoom / Pan Controls) -->
+                    <div id="cad-hud-controls" class="absolute bottom-3 right-3 flex items-center gap-1.5 bg-slate-900/90 border-2 border-slate-700 p-1.5 shadow-lg backdrop-blur-sm z-20">
+                        <button type="button" onclick="zoomIn()" title="Zoom In (+)" class="w-7 h-7 bg-white hover:bg-yellow-300 border border-slate-900 text-slate-900 font-black text-sm flex items-center justify-center cursor-pointer active:translate-y-0.5 transition-all">+</button>
+                        <button type="button" onclick="zoomOut()" title="Zoom Out (-)" class="w-7 h-7 bg-white hover:bg-yellow-300 border border-slate-900 text-slate-900 font-black text-sm flex items-center justify-center cursor-pointer active:translate-y-0.5 transition-all">−</button>
+                        <button type="button" onclick="resetView()" title="Fit View (Extents)" class="px-2 h-7 bg-yellow-300 hover:bg-yellow-400 border border-slate-900 text-slate-900 font-black text-[10px] uppercase flex items-center justify-center cursor-pointer active:translate-y-0.5 transition-all">FIT</button>
+                        <span id="zoomReadout" class="font-cad-mono text-[10px] text-yellow-400 font-bold px-1.5 select-none">100%</span>
+                    </div>
                 </div>
             </div>
 
@@ -549,6 +569,42 @@ pub fn generate_html_viewer_with_config(
 
         let offscreenCanvas = null;
 
+        // Interactive CAD Viewport State
+        let viewZoom = 1.0;
+        let panOffsetX = 0;
+        let panOffsetY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let didDrag = false;
+
+        function updateZoomUI() {{
+            const readout = document.getElementById('zoomReadout');
+            if (readout) {{
+                readout.textContent = Math.round(viewZoom * 100) + '%';
+            }}
+        }}
+
+        function zoomIn() {{
+            viewZoom = Math.min(25.0, viewZoom * 1.25);
+            updateZoomUI();
+            drawContour();
+        }}
+
+        function zoomOut() {{
+            viewZoom = Math.max(0.2, viewZoom / 1.25);
+            updateZoomUI();
+            drawContour();
+        }}
+
+        function resetView() {{
+            viewZoom = 1.0;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            updateZoomUI();
+            drawContour();
+        }}
+
         function buildRasterImage() {{
             if (!rasterData || !rasterData.rle || rasterData.cols === 0 || rasterData.rows === 0) return null;
             if (offscreenCanvas) return offscreenCanvas;
@@ -632,9 +688,12 @@ pub fn generate_html_viewer_with_config(
             const availW = width - padding * 2;
             const availH = height - padding * 2;
 
-            const scale = Math.min(availW / dx, availH / dy);
-            const offsetX = (width - dx * scale) / 2;
-            const offsetY = (height - dy * scale) / 2;
+            const baseScale = Math.min(availW / dx, availH / dy);
+            const scale = baseScale * viewZoom;
+
+            // Map origin in screen coordinates (center-based)
+            const mapCenterX = width / 2 + panOffsetX;
+            const mapCenterY = height / 2 + panOffsetY;
 
             // 1. Draw Seamless Raster Heatmap Image
             const rasterImg = buildRasterImage();
@@ -642,28 +701,86 @@ pub fn generate_html_viewer_with_config(
                 ctx.imageSmoothingEnabled = false;
                 const destW = dx * scale;
                 const destH = dy * scale;
-                const destX = offsetX;
-                const destY = height - (offsetY + destH);
+                const destX = mapCenterX - destW / 2;
+                const destY = mapCenterY - destH / 2;
 
                 ctx.drawImage(rasterImg, destX, destY, destW, destH);
             }}
 
-            // 2. Draw Overlay Vector CAD Design Lines
+            // 2. Draw Overlay Vector CAD Design Lines (always rendered crisp at current zoom)
             if (designPolylines && designPolylines.length > 0) {{
-                ctx.lineWidth = 1.0;
+                ctx.lineWidth = Math.max(1.0, Math.min(3.0, 1.0 * Math.sqrt(viewZoom)));
+                const midX = (minX + maxX) / 2;
+                const midY = (minY + maxY) / 2;
+
                 for (const pl of designPolylines) {{
                     if (!pl.pts || pl.pts.length < 2) continue;
                     ctx.strokeStyle = pl.c || '#ffffff';
                     ctx.beginPath();
                     for (let i = 0; i < pl.pts.length; i++) {{
-                        const px = offsetX + (pl.pts[i][0] - minX) * scale;
-                        const py = height - (offsetY + (pl.pts[i][1] - minY) * scale);
+                        const px = mapCenterX + (pl.pts[i][0] - midX) * scale;
+                        const py = mapCenterY - (pl.pts[i][1] - midY) * scale;
                         if (i === 0) ctx.moveTo(px, py);
                         else ctx.lineTo(px, py);
                     }}
                     ctx.stroke();
                 }}
             }}
+        }}
+
+        // Setup Interactive Mouse Wheel Zoom & Drag-Pan Listeners
+        const canvasEl = document.getElementById('contourCanvas');
+        if (canvasEl) {{
+            canvasEl.addEventListener('wheel', function(e) {{
+                e.preventDefault();
+                const rect = canvasEl.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const prevZoom = viewZoom;
+                const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8333;
+                const newZoom = Math.max(0.2, Math.min(30.0, viewZoom * zoomFactor));
+
+                // Zoom centered around mouse cursor position (natural screen-space)
+                const ratio = newZoom / prevZoom;
+                const relX = mouseX - (canvasEl.clientWidth / 2 + panOffsetX);
+                const relY = mouseY - (canvasEl.clientHeight / 2 + panOffsetY);
+                panOffsetX -= relX * (ratio - 1);
+                panOffsetY -= relY * (ratio - 1);
+                viewZoom = newZoom;
+
+                updateZoomUI();
+                drawContour();
+            }}, {{ passive: false }});
+
+            canvasEl.addEventListener('mousedown', function(e) {{
+                if (e.button === 0 || e.button === 1) {{ // Left or Middle click
+                    isDragging = true;
+                    dragStartX = e.clientX - panOffsetX;
+                    dragStartY = e.clientY - panOffsetY;
+                    didDrag = false;
+                }}
+            }});
+
+            window.addEventListener('mousemove', function(e) {{
+                if (isDragging) {{
+                    panOffsetX = e.clientX - dragStartX;
+                    panOffsetY = e.clientY - dragStartY;
+                    didDrag = true;
+                    drawContour();
+                }}
+            }});
+
+            window.addEventListener('mouseup', function(e) {{
+                if (isDragging) {{
+                    isDragging = false;
+                }}
+            }});
+
+            // Double click to reset view to extents
+            canvasEl.addEventListener('dblclick', function(e) {{
+                resetView();
+            }});
         }}
 
         window.addEventListener('resize', drawContour);

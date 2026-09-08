@@ -7,7 +7,7 @@ fn test_config_default_values() {
     assert_eq!(cfg.default_title, "PIT ALPHA CUT & FILL");
     assert_eq!(cfg.drawn_by, "Fikri Ardyantoro");
     assert_eq!(cfg.topo_date, "28 July 2026");
-    assert_eq!(cfg.grid_step, 1.0);
+    assert_eq!(cfg.grid_step, 0.5);
     assert_eq!(cfg.max_tin_edge, 300.0);
     assert_eq!(cfg.weeding_min_dist, 0.5);
     assert_eq!(cfg.supplement_max_dist, 10.0);

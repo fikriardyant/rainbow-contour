@@ -201,7 +201,7 @@ impl Default for EngineConfig {
             design_name: String::new(),
             company_logo_path: "company_logo.png".to_string(),
             auto_open_browser: true,
-            grid_step: 1.0,
+            grid_step: 0.5,
             max_tin_edge: 300.0,
             weeding_min_dist: 0.5,
             supplement_max_dist: 10.0,
