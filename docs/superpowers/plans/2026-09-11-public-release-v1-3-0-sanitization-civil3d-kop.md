@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Sanitize the Rainbow Contour codebase for public open-source release by replacing all private company/mine identifiers with generic mining contractor profiles, replace the PAMA logo with a generative 1:1 corporate mining emblem, update the automated screenshot assets, modernize the README with step-by-step tutorials, bump version to v1.3.0 with complete changelog, and push tag v1.3.0 to remote.
+**Goal:** Sanitize the Rainbow Contour codebase for public open-source release by replacing all private company/mine identifiers with generic mining contractor profiles, replace the legacy logo with a generative 1:1 corporate mining emblem, update the automated screenshot assets, modernize the README with step-by-step tutorials, bump version to v1.3.0 with complete changelog, and push tag v1.3.0 to remote.
 
 **Architecture:** 
 1. Generate an isometric vector/geometric 1:1 corporate mining logo (`company_logo.png`) using SVG-to-Chrome headless rasterization.
@@ -16,7 +16,7 @@
 
 ## Global Constraints
 - Target version: `1.3.0`
-- Zero occurrences of sensitive internal names: `PAMAPERSADA`, `PAMA PERSADA`, `KPCS`, `SANGATTA`, or internal pit names in tracked code, tests, or screenshots.
+- Zero occurrences of sensitive internal names or internal pit names in tracked code, tests, or screenshots.
 - Generic corporate profile: `COMPANY_NAME = "PT MINING NUSANTARA PRIMA"`, `DISTRICT_NAME = "DISTRIK NUSANTARA"`, `DRAWN_BY = "Mine Engineer"`, `PROJECT_NAME = "PIT ALPHA"`, `RAINBOW_TITLE = "PIT ALPHA CUT & FILL"`.
 - Company logo aspect ratio: 1:1 (square), transparent background, high resolution (1000x1000 or 1024x1024 px PNG).
 - Non-technical release description matching CHANGELOG for easy contractor and mine management understanding.
