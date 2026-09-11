@@ -55,6 +55,10 @@ fn prompt_file_path(prompt_text: &str, required: bool, default_val: &str) -> Str
             return trimmed;
         } else {
             println!("  [Error] File not found: '{}'. Please check the path and try again.", trimmed);
+            if trimmed.is_empty() {
+                eprintln!("  [Fatal] Non-interactive EOF reached without valid file path. Exiting.");
+                std::process::exit(1);
+            }
         }
     }
 }
