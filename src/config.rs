@@ -154,6 +154,24 @@ pub struct EngineConfig {
     pub contour_levels: Vec<f64>,
     pub default_outdir: String,
 
+    // Status Wizard Setup
+    pub first_run: bool,
+
+    // Identitas Unit / Distrik / Departemen
+    pub district_name: String,
+    pub department_name: String,
+
+    // Metadata & Validasi Peta
+    pub project_name: String,
+    pub map_subtitle: String,
+    pub reviewed_by: String,
+    pub approved_by: String,
+    pub coordinate_system: String,
+
+    // Grid Anotasi
+    pub grid_interval: f64,
+    pub subtick_interval: f64,
+
     // Toleransi Ongrade
     pub ongrade_min: f64,
     pub ongrade_max: f64,
@@ -211,6 +229,18 @@ impl Default for EngineConfig {
                 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0,
             ],
             default_outdir: "./output".to_string(),
+
+            // Default First-Run & Kop Metadata
+            first_run: false,
+            district_name: "DISTRIK KPCS • SANGATTA".to_string(),
+            department_name: "ENGINEERING & MINE PLANNING DEPT.".to_string(),
+            project_name: "PIT ALPHA".to_string(),
+            map_subtitle: "ISOPACH DIFFERENCE (TOPO - DESIGN)".to_string(),
+            reviewed_by: "Reviewer".to_string(),
+            approved_by: "Approver".to_string(),
+            coordinate_system: "UTM ZONE 50S (WGS84)".to_string(),
+            grid_interval: 200.0,
+            subtick_interval: 50.0,
 
             // Default ongrade tolerance [-0.5, +0.5]
             ongrade_min: -0.5,
@@ -354,6 +384,62 @@ impl EngineConfig {
         let label_fill_high = map.get("LABEL_FILL_HIGH").cloned().unwrap_or(def.label_fill_high);
         let label_fill_deep = map.get("LABEL_FILL_DEEP").cloned().unwrap_or(def.label_fill_deep);
 
+        let first_run = map.get("FIRST_RUN")
+            .map(|s| {
+                let sl = s.to_lowercase();
+                sl == "y" || sl == "yes" || sl == "true" || sl == "1"
+            })
+            .unwrap_or(def.first_run);
+
+        let district_name = map.get("DISTRICT_NAME")
+            .or_else(|| map.get("DISTRIK"))
+            .or_else(|| map.get("DISTRICT"))
+            .cloned()
+            .unwrap_or(def.district_name);
+
+        let department_name = map.get("DEPARTMENT_NAME")
+            .or_else(|| map.get("DEPT"))
+            .or_else(|| map.get("DEPARTMENT"))
+            .cloned()
+            .unwrap_or(def.department_name);
+
+        let project_name = map.get("PROJECT_NAME")
+            .or_else(|| map.get("PROJECT"))
+            .cloned()
+            .unwrap_or(def.project_name);
+
+        let map_subtitle = map.get("MAP_SUBTITLE")
+            .or_else(|| map.get("SUBTITLE"))
+            .cloned()
+            .unwrap_or(def.map_subtitle);
+
+        let reviewed_by = map.get("REVIEWED_BY")
+            .or_else(|| map.get("CHECKED_BY"))
+            .or_else(|| map.get("REVIEWER"))
+            .or_else(|| map.get("CHECKED"))
+            .cloned()
+            .unwrap_or(def.reviewed_by);
+
+        let approved_by = map.get("APPROVED_BY")
+            .or_else(|| map.get("APPROVER"))
+            .or_else(|| map.get("APPROVED"))
+            .cloned()
+            .unwrap_or(def.approved_by);
+
+        let coordinate_system = map.get("COORDINATE_SYSTEM")
+            .or_else(|| map.get("PROJECTION"))
+            .or_else(|| map.get("CRS"))
+            .cloned()
+            .unwrap_or(def.coordinate_system);
+
+        let grid_interval = map.get("GRID_INTERVAL")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(def.grid_interval);
+
+        let subtick_interval = map.get("SUBTICK_INTERVAL")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(def.subtick_interval);
+
         Self {
             topo_path,
             design_path,
@@ -370,6 +456,16 @@ impl EngineConfig {
             supplement_max_dist,
             contour_levels,
             default_outdir,
+            first_run,
+            district_name,
+            department_name,
+            project_name,
+            map_subtitle,
+            reviewed_by,
+            approved_by,
+            coordinate_system,
+            grid_interval,
+            subtick_interval,
             ongrade_min,
             ongrade_max,
             color_cut_deep,
@@ -409,24 +505,42 @@ impl EngineConfig {
             .collect::<Vec<String>>()
             .join(",");
 
+        let first_run_str = if self.first_run { "y" } else { "n" };
+
         format!(
             r#"# ======================================================================
 # RAINBOW CONTOUR ENGINE CONFIGURATION (config.dat)
 # Edit parameter di bawah untuk mengubah default input, kalkulasi & kop peta
 # ======================================================================
 
+# --- WIZARD SETUP STATUS (n = tanya setup saat run pertama, y = setup selesai) ---
+FIRST_RUN={}
+
+# --- IDENTITAS PERUSAHAAN & SITE ---
+COMPANY_NAME={}
+DISTRICT_NAME={}
+DEPARTMENT_NAME={}
+COMPANY_LOGO_PATH={}
+
+# --- METADATA & VALIDASI PETA (Civil 3D) ---
+PROJECT_NAME={}
+RAINBOW_TITLE={}
+MAP_SUBTITLE={}
+DRAWN_BY={}
+REVIEWED_BY={}
+APPROVED_BY={}
+COORDINATE_SYSTEM={}
+TOPO_DATE={}
+DESIGN_NAME={}
+AUTO_OPEN_BROWSER={}
+
 # --- DEFAULT INPUT DXF (Biarkan kosong jika ingin ditanyakan saat dijalankan) ---
 TOPO_PATH={}
 DESIGN_PATH={}
 
-# --- KOP & METADATA PETA ---
-COMPANY_NAME={}
-RAINBOW_TITLE={}
-DRAWN_BY={}
-TOPO_DATE={}
-DESIGN_NAME={}
-COMPANY_LOGO_PATH={}
-AUTO_OPEN_BROWSER={}
+# --- GRID ANOTASI PETA (Meter) ---
+GRID_INTERVAL={:.1}
+SUBTICK_INTERVAL={:.1}
 
 # --- PARAMETER PERHITUNGAN GRID & SURFACE ---
 GRID_STEP={:.2}
@@ -474,15 +588,25 @@ CONTOUR_LEVELS={}
 # --- DEFAULT OUTPUT ---
 DEFAULT_OUTDIR={}
 "#,
-            self.topo_path,
-            self.design_path,
+            first_run_str,
             self.company_name,
+            self.district_name,
+            self.department_name,
+            self.company_logo_path,
+            self.project_name,
             self.default_title,
+            self.map_subtitle,
             self.drawn_by,
+            self.reviewed_by,
+            self.approved_by,
+            self.coordinate_system,
             self.topo_date,
             self.design_name,
-            self.company_logo_path,
             self.auto_open_browser,
+            self.topo_path,
+            self.design_path,
+            self.grid_interval,
+            self.subtick_interval,
             self.grid_step,
             self.max_tin_edge,
             self.weeding_min_dist,
@@ -518,6 +642,10 @@ DEFAULT_OUTDIR={}
             levels_str,
             self.default_outdir
         )
+    }
+
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
+        fs::write(path, self.to_dat_string())
     }
 
     pub fn load_or_create<P: AsRef<Path>>(path: P) -> Self {

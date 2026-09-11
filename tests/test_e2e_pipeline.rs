@@ -144,6 +144,9 @@ EOF"#;
             "1.0",
             "--outdir",
             out_dir.to_str().unwrap(),
+            "--config",
+            temp_dir.join("config.dat").to_str().unwrap(),
+            "--no-open",
         ])
         .status()
         .expect("Failed to execute cargo run");

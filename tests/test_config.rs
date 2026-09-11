@@ -103,4 +103,45 @@ fn test_config_to_dat_roundtrip() {
     assert_eq!(cfg1.ongrade_max, cfg2.ongrade_max);
     assert_eq!(cfg1.color_ongrade, cfg2.color_ongrade);
     assert_eq!(cfg1.color_cut_deep, cfg2.color_cut_deep);
+    assert_eq!(cfg1.first_run, cfg2.first_run);
+    assert_eq!(cfg1.district_name, cfg2.district_name);
+    assert_eq!(cfg1.department_name, cfg2.department_name);
+    assert_eq!(cfg1.project_name, cfg2.project_name);
+    assert_eq!(cfg1.map_subtitle, cfg2.map_subtitle);
+    assert_eq!(cfg1.reviewed_by, cfg2.reviewed_by);
+    assert_eq!(cfg1.approved_by, cfg2.approved_by);
+    assert_eq!(cfg1.coordinate_system, cfg2.coordinate_system);
+}
+
+#[test]
+fn test_config_first_run_and_civil3d_metadata() {
+    let dat_n = r#"
+FIRST_RUN = n
+DISTRICT_NAME = DISTRIK BAYA
+DEPARTMENT_NAME = SURVEY DEPT
+PROJECT_NAME = PIT CHARLIE
+MAP_SUBTITLE = CUT FILL DIFFERENCE
+DRAWN_BY = John
+REVIEWED_BY = Sahid
+APPROVED_BY = Herga
+COORDINATE_SYSTEM = UTM ZONE 50S (WGS84)
+GRID_INTERVAL = 250.0
+SUBTICK_INTERVAL = 50.0
+"#;
+    let cfg_n = EngineConfig::parse_content(dat_n);
+    assert_eq!(cfg_n.first_run, false);
+    assert_eq!(cfg_n.district_name, "DISTRIK BAYA");
+    assert_eq!(cfg_n.department_name, "SURVEY DEPT");
+    assert_eq!(cfg_n.project_name, "PIT CHARLIE");
+    assert_eq!(cfg_n.map_subtitle, "CUT FILL DIFFERENCE");
+    assert_eq!(cfg_n.drawn_by, "John");
+    assert_eq!(cfg_n.reviewed_by, "Sahid");
+    assert_eq!(cfg_n.approved_by, "Herga");
+    assert_eq!(cfg_n.coordinate_system, "UTM ZONE 50S (WGS84)");
+    assert_eq!(cfg_n.grid_interval, 250.0);
+    assert_eq!(cfg_n.subtick_interval, 50.0);
+
+    let dat_y = r#"FIRST_RUN = y"#;
+    let cfg_y = EngineConfig::parse_content(dat_y);
+    assert_eq!(cfg_y.first_run, true);
 }

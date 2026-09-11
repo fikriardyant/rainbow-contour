@@ -101,6 +101,7 @@ fn test_generate_sample_output_artifacts() {
         topo_date: "28 July 2026",
         design_name: "Plan EOM July 2026",
         logo_data_uri: None,
+        ..Default::default()
     };
     let html_content = generate_html_viewer(&kop, &grid, &volume, &[]);
     fs::write(out_dir.join("rainbow-viewer.html"), html_content).unwrap();

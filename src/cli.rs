@@ -27,6 +27,18 @@ pub struct CliArgs {
     #[arg(long, help = "Drawn By name for Kop (overrides config.dat)")]
     pub drawn_by: Option<String>,
 
+    #[arg(long, help = "Reviewed By name for Kop (overrides config.dat)")]
+    pub reviewed_by: Option<String>,
+
+    #[arg(long, help = "Approved By name for Kop (overrides config.dat)")]
+    pub approved_by: Option<String>,
+
+    #[arg(long, help = "Project Name for Kop (overrides config.dat)")]
+    pub project: Option<String>,
+
+    #[arg(long, help = "District / Site Name for Kop (overrides config.dat)")]
+    pub district: Option<String>,
+
     #[arg(long, help = "Topo Survey Date for Kop")]
     pub topo_date: Option<String>,
 

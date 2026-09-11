@@ -80,13 +80,35 @@ fn main() {
     if let Some(ref tp) = args.topo { if !tp.is_empty() { config.topo_path = tp.clone(); } }
     if let Some(ref dp) = args.design { if !dp.is_empty() { config.design_path = dp.clone(); } }
     if let Some(ref c) = args.company { if !c.is_empty() { config.company_name = c.clone(); } }
+    if let Some(ref dist) = args.district { if !dist.is_empty() { config.district_name = dist.clone(); } }
+    if let Some(ref proj) = args.project { if !proj.is_empty() { config.project_name = proj.clone(); } }
     if let Some(ref t) = args.rainbow_title { if !t.is_empty() { config.default_title = t.clone(); } }
     if let Some(ref d) = args.drawn_by { if !d.is_empty() { config.drawn_by = d.clone(); } }
+    if let Some(ref r) = args.reviewed_by { if !r.is_empty() { config.reviewed_by = r.clone(); } }
+    if let Some(ref a) = args.approved_by { if !a.is_empty() { config.approved_by = a.clone(); } }
     if let Some(ref td) = args.topo_date { if !td.is_empty() { config.topo_date = td.clone(); } }
     if let Some(ref dn) = args.design_name { if !dn.is_empty() { config.design_name = dn.clone(); } }
     if let Some(ref lg) = args.logo { if !lg.is_empty() { config.company_logo_path = lg.clone(); } }
     if let Some(s) = args.step { config.grid_step = s; }
     if let Some(ref o) = args.outdir { if !o.is_empty() { config.default_outdir = o.clone(); } }
+
+    // FIRST-RUN WIZARD: Prompt site & company identity once if FIRST_RUN=n
+    if !config.first_run && args.company.is_none() && args.drawn_by.is_none() {
+        println!("======================================================================");
+        println!("  FIRST-RUN SETUP: IDENTITAS KOP & PERUSAHAAN");
+        println!("  (Tekan Enter untuk memakai nilai default, atau ketik untuk mengganti)");
+        println!("======================================================================");
+        config.company_name = prompt_input("1. Company Name", true, &config.company_name);
+        config.district_name = prompt_input("2. District / Site", true, &config.district_name);
+        config.department_name = prompt_input("3. Department Name", true, &config.department_name);
+        config.company_logo_path = prompt_input("4. Company Logo Path", true, &config.company_logo_path);
+        config.coordinate_system = prompt_input("5. Coordinate System / Projection", true, &config.coordinate_system);
+
+        config.first_run = true;
+        let _ = config.save_to_file(&args.config);
+        println!("----------------------------------------------------------------------");
+        println!("  [Saved] Pengaturan identitas berhasil disimpan ke {} (FIRST_RUN=y).\n", args.config);
+    }
 
     let topo_path = if !config.topo_path.is_empty() && Path::new(&config.topo_path).exists() {
         config.topo_path.clone()
@@ -158,28 +180,42 @@ fn main() {
         config.ongrade_min, config.ongrade_max, volume.cut_m3, volume.fill_m3, volume.ongrade_area_m2
     );
 
-    // 1. Company Name: CLI > Prompt (default from config.dat)
-    let company_name = if let Some(ref c) = args.company {
-        c.clone()
+    // 1. Project Name / Pit Name: CLI > Prompt (default from config.dat)
+    let project_name = if let Some(ref p) = args.project {
+        p.clone()
     } else {
-        prompt_input("Enter Company Name", true, &config.company_name)
+        prompt_input("Enter Project / Pit Name", true, &config.project_name)
     };
 
-    // 2. Map Title / Project Title: CLI > Prompt (default from config.dat)
+    // 2. Map Title: CLI > Prompt (default from config.dat)
     let title = if let Some(ref t) = args.rainbow_title {
         t.clone()
     } else {
-        prompt_input("Enter Map Title / Project Title", true, &config.default_title)
+        prompt_input("Enter Map Title", true, &config.default_title)
     };
 
-    // 3. Drawn By: CLI > Prompt (default from config.dat)
+    // 3. Drawn By: CLI > Prompt (default from config.dat / previous run)
     let drawn_by = if let Some(ref d) = args.drawn_by {
         d.clone()
     } else {
-        prompt_input("Enter Drawn By", true, &config.drawn_by)
+        prompt_input("Enter Drafter (Drawn By)", true, &config.drawn_by)
     };
 
-    // 4. Topo Survey Date: CLI > Prompt (default from Topo DXF file modified date or config.dat)
+    // 4. Reviewed By: CLI > Prompt (default from config.dat / previous run)
+    let reviewed_by = if let Some(ref r) = args.reviewed_by {
+        r.clone()
+    } else {
+        prompt_input("Enter Reviewer (Reviewed By)", true, &config.reviewed_by)
+    };
+
+    // 5. Approved By: CLI > Prompt (default from config.dat / previous run)
+    let approved_by = if let Some(ref a) = args.approved_by {
+        a.clone()
+    } else {
+        prompt_input("Enter Approver (Approved By)", true, &config.approved_by)
+    };
+
+    // 6. Topo Survey Date: CLI > Prompt (default from Topo DXF file modified date or config.dat)
     let default_topo_date = if !config.topo_date.is_empty() && config.topo_date != "28 July 2026" {
         config.topo_date.clone()
     } else {
@@ -191,7 +227,7 @@ fn main() {
         prompt_input("Enter Topo Survey Date", true, &default_topo_date)
     };
 
-    // 5. Design Name: CLI > Prompt (default from Design DXF filename or config.dat)
+    // 7. Design Name: CLI > Prompt (default from Design DXF filename or config.dat)
     let default_design_name = if !config.design_name.is_empty() {
         config.design_name.clone()
     } else {
@@ -203,45 +239,42 @@ fn main() {
         prompt_input("Enter Design Name", true, &default_design_name)
     };
 
-    // 6. Date Created: Automatically today's date
+    // Save latest drafter/reviewer/approver/project to config.dat for future runs
+    if config.drawn_by != drawn_by || config.reviewed_by != reviewed_by || config.approved_by != approved_by || config.project_name != project_name {
+        config.drawn_by = drawn_by.clone();
+        config.reviewed_by = reviewed_by.clone();
+        config.approved_by = approved_by.clone();
+        config.project_name = project_name.clone();
+        let _ = config.save_to_file(&args.config);
+    }
+
+    // 8. Date Created: Automatically today's date
     let date_created_str = get_current_date_string();
 
-    // 7. Company Logo: CLI > Prompt (default from company_logo.png or config.dat)
-    let default_logo_path = if !config.company_logo_path.is_empty() {
+    // 9. Company Logo
+    let final_logo_path = if let Some(ref lg) = args.logo {
+        lg.clone()
+    } else if !config.company_logo_path.is_empty() {
         config.company_logo_path.clone()
     } else {
         "company_logo.png".to_string()
     };
-    let logo_path = if let Some(ref lg) = args.logo {
-        lg.clone()
-    } else {
-        prompt_input("Enter Company Logo Path (press Enter to use default)", false, &default_logo_path)
-    };
-
-    // If user provided a different custom logo file, copy and save it as company_logo.png for subsequent runs
-    let final_logo_path = if !logo_path.is_empty() && Path::new(&logo_path).exists() {
-        let target_default = Path::new("company_logo.png");
-        if Path::new(&logo_path) != target_default {
-            if let Ok(_) = fs::copy(&logo_path, target_default) {
-                println!("  [Saved] Copied '{}' to 'company_logo.png' for next runs.", logo_path);
-            }
-        }
-        logo_path
-    } else if Path::new(&default_logo_path).exists() {
-        default_logo_path
-    } else {
-        String::new()
-    };
-
     let logo_data_uri = load_image_as_data_uri(&final_logo_path);
 
     let kop_info = KopInfo {
         title: &title,
-        company: &company_name,
+        subtitle: &config.map_subtitle,
+        company: &config.company_name,
+        district: &config.district_name,
+        department: &config.department_name,
+        project_name: &project_name,
         drawn_by: &drawn_by,
+        reviewed_by: &reviewed_by,
+        approved_by: &approved_by,
         date_created: &date_created_str,
         topo_date: &topo_date,
         design_name: &design_name,
+        coordinate_system: &config.coordinate_system,
         logo_data_uri: logo_data_uri.as_deref(),
     };
 

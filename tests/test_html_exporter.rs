@@ -28,6 +28,7 @@ fn test_generate_html_viewer_contains_neobrutalism_css() {
         topo_date: "28 July 2026",
         design_name: "Plan EOM July 2026",
         logo_data_uri: None,
+        ..Default::default()
     };
     let html = generate_html_viewer(&kop, &grid, &summary, &[]);
     assert!(html.contains("PETA RAINBOW CONTOUR"));
@@ -53,6 +54,7 @@ fn test_html_exporter_custom_colors_and_ongrade() {
         topo_date: "3 September 2026",
         design_name: "Plan EOM",
         logo_data_uri: None,
+        ..Default::default()
     };
     let summary = VolumeSummary {
         cut_m3: 100.0,
@@ -78,6 +80,7 @@ fn test_html_exporter_contains_interactive_cad_hud_and_zoom() {
         topo_date: "3 September 2026",
         design_name: "Plan EOM",
         logo_data_uri: None,
+        ..Default::default()
     };
     let summary = VolumeSummary {
         cut_m3: 0.0,
@@ -93,4 +96,23 @@ fn test_html_exporter_contains_interactive_cad_hud_and_zoom() {
     assert!(html.contains("resetView()"));
     assert!(html.contains("zoomReadout"));
 }
+
+#[test]
+fn test_html_exporter_compact_volume_summary() {
+    let kop = KopInfo::default();
+    let summary = VolumeSummary {
+        cut_m3: 38253.75,
+        fill_m3: 0.0,
+        net_m3: -38253.75,
+        cell_area_m2: 1.0,
+        ongrade_area_m2: 0.0,
+    };
+    let html = generate_html_viewer(&kop, &[], &summary, &[]);
+    // Verify compact volume summary layout (docked at bottom, no loose justify-around)
+    assert!(html.contains("VOLUME SUMMARY"));
+    assert!(html.contains("height: 92px; flex-shrink: 0;"));
+    assert!(html.contains("38,253.75 m³"));
+    assert!(html.contains("-38,253.75 m³"));
+}
+
 
