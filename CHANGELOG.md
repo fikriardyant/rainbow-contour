@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-09-11
+
+### Added
+- **Civil 3D Engineering Drawing Layout**: Upgraded the A4 landscape map sheet with professional mining drawing standards:
+  - Precise outer and inner drawing border frames.
+  - 4-sided coordinate tick marks and hairline grid lines across the entire map area (horizontal Easting at top & bottom, vertical Northing with -90° rotation at left & right).
+  - CAD-standard 4-point star compass North Arrow in the upper left corner.
+  - Dynamic metric graphic scale bar and ratio scale indicator in the lower left corner.
+- **Restructured Title Block (KOP) Hierarchy**: Redesigned the right-hand technical title block to mirror standard civil and mine engineering construction drawings:
+  - Top corporate branding header with prominent company logo support.
+  - Dedicated site metadata fields including District and Department identity.
+  - Clear hierarchical project naming, subtitle, and drawing numbers.
+  - Formal 3-tier validation sign-off block (Drawn By, Reviewed By, Approved By).
+- **District & Site Metadata Support**: Added `DISTRICT_NAME` parameter in `config.dat` and `--district` CLI argument, fully integrated with the first-run setup wizard.
+- **Automated 2x Retina Screenshot Generator**: Added `capture_screenshots.py` leveraging headless Chrome and automatic container boundary detection to generate crystal-clear, high-resolution documentation and showcase images (`preview.png` and `summary.png`).
+- **Generative 1:1 Corporate Emblem**: Replaced legacy branding with a clean, modern geometric 1:1 square corporate mining emblem (`company_logo.png`) featuring stylized pit terraces and elevation contours.
+
+### Changed
+- **Compact Volume Summary Table**: Replaced oversized card widgets with a unified, high-density tabular summary showing Cut ($m^3$), Fill ($m^3$), Net Difference ($m^3$), and On-Grade Surface Area ($m^2$) for clean, uncluttered reporting.
+- **Unified 13-Range Isoline Legend**: Standardized elevation delta intervals with clean, uniform range brackets and vivid high-contrast color coding.
+- **Public Release Sanitization**: Replaced all proprietary site and contractor names across default configurations, engine fallbacks, and test fixtures with generic mining enterprise profiles (`PT MINING NUSANTARA PRIMA`, `DISTRIK NUSANTARA`, `PIT ALPHA`).
+
+### Fixed
+- **Strict Repository Privacy Protection**: Hardened `.gitignore` to strictly exclude all raw customer survey DXFs, trial folders (`trial*/`), mock layouts (`mock*/`), output directories (`output*/`), and temporary cache files from version control.
+
+---
+
 ## [1.2.0] - 2026-09-08
 
 ### Added

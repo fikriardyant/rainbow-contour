@@ -1,7 +1,7 @@
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(name = "rainbow-contour", author = "Fikri Ardyantoro / Kuda", version = "0.1.0", about = "Rainbow Contour Cut & Fill Engine")]
+#[command(name = "rainbow-contour", author = "Rainbow Contour Contributors", version = "1.3.0", about = "Rainbow Contour Cut & Fill Engine")]
 pub struct CliArgs {
     #[arg(short, long, help = "Path to Topo DXF file")]
     pub topo: Option<String>,
