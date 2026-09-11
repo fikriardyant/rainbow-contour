@@ -22,8 +22,8 @@ fn test_generate_html_viewer_contains_neobrutalism_css() {
 
     let kop = KopInfo {
         title: "Pit A July 2026",
-        company: "PT PAMA PERSADA NUSANTARA",
-        drawn_by: "Fikri Ardyantoro",
+        company: "PT MINING NUSANTARA PRIMA",
+        drawn_by: "Mine Engineer",
         date_created: "29 July 2026",
         topo_date: "28 July 2026",
         design_name: "Plan EOM July 2026",
@@ -48,8 +48,8 @@ fn test_html_exporter_custom_colors_and_ongrade() {
 
     let kop = KopInfo {
         title: "Pit A",
-        company: "PT PAMA PERSADA NUSANTARA",
-        drawn_by: "Fikri Ardyantoro",
+        company: "PT MINING NUSANTARA PRIMA",
+        drawn_by: "Mine Engineer",
         date_created: "3 September 2026",
         topo_date: "3 September 2026",
         design_name: "Plan EOM",
@@ -74,8 +74,8 @@ fn test_html_exporter_custom_colors_and_ongrade() {
 fn test_html_exporter_contains_interactive_cad_hud_and_zoom() {
     let kop = KopInfo {
         title: "Pit A",
-        company: "PT PAMA PERSADA NUSANTARA",
-        drawn_by: "Fikri Ardyantoro",
+        company: "PT MINING NUSANTARA PRIMA",
+        drawn_by: "Mine Engineer",
         date_created: "3 September 2026",
         topo_date: "3 September 2026",
         design_name: "Plan EOM",

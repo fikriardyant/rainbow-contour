@@ -4,7 +4,12 @@ demo_fixtures/
 output*/
 build/
 *.dxf
+*.dwg
 *.json
+!Cargo.lock
 sample_demo_output/
 graphify-out/
-trial_intan/
+trial*/
+mock*/
+.unlazy/
+*.tmp

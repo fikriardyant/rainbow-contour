@@ -94,9 +94,9 @@ fn test_generate_sample_output_artifacts() {
     fs::create_dir_all(out_dir).unwrap();
 
     let kop = KopInfo {
-        title: "Sangatta Pit Alpha - July 2026",
-        company: "PT PAMA PERSADA NUSANTARA",
-        drawn_by: "Fikri Ardyantoro",
+        title: "Pit Alpha - July 2026",
+        company: "PT MINING NUSANTARA PRIMA",
+        drawn_by: "Mine Engineer",
         date_created: "29 July 2026",
         topo_date: "28 July 2026",
         design_name: "Plan EOM July 2026",

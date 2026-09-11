@@ -238,7 +238,7 @@ Create `rainbow-contour.sh`:
 #!/usr/bin/env bash
 echo "======================================================================"
 echo "  RAINBOW CONTOUR - Cut & Fill Difference Map Generator v1.0"
-echo "  PAMA Mine Engineering Field Launcher"
+echo "  Mine Engineering Field Launcher"
 echo "======================================================================"
 
 mkdir -p output
@@ -261,7 +261,7 @@ Create `rainbow-contour.bat`:
 @echo off
 echo ======================================================================
 echo   RAINBOW CONTOUR - Cut ^& Fill Difference Map Generator v1.0
-echo   PAMA Mine Engineering Field Launcher
+echo   Mine Engineering Field Launcher
 echo ======================================================================
 
 if not exist "output" mkdir output

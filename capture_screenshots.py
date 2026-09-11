@@ -31,11 +31,12 @@ import numpy as np
 from PIL import Image
 
 DEFAULT_CANDIDATE_PATHS = [
-    "trial_intan/output/rainbow-viewer.html",
     "output/rainbow-viewer.html",
-    "output_latest_trial/rainbow-viewer.html",
     "sample_demo_output/rainbow-viewer.html",
     "/tmp/rainbow_showcase_gen/rainbow-viewer.html",
+    "/tmp/rainbow_public_render/rainbow-viewer.html",
+    "trial_intan/output/rainbow-viewer.html",
+    "output_latest_trial/rainbow-viewer.html",
 ]
 
 DASHBOARD_ASSETS_DIR = "/home/cells/Documents/Antigravity Project/Dashboard/public/rainbow-contour"

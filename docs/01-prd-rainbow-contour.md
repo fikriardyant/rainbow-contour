@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary & Purpose
 
-In open-pit mining operations (PAMA / Contractor workflows), mine engineers must compare high-density Topo survey data against monthly Pit Design models to generate **Cut & Fill elevation difference maps (Rainbow Contour)** and calculate volume differences ($m^3$). 
+In open-pit mining operations (Mining Contractor workflows), mine engineers must compare high-density Topo survey data against monthly Pit Design models to generate **Cut & Fill elevation difference maps (Rainbow Contour)** and calculate volume differences ($m^3$). 
 
 Currently, engineers rely on heavy commercial GIS/CAD software (Civil 3D, Surpac, Datamine), which is slow to launch, consumes high workstation memory, and is inaccessible on standard field laptops.
 
@@ -20,7 +20,7 @@ Currently, engineers rely on heavy commercial GIS/CAD software (Civil 3D, Surpac
 
 ## 2. Target Audience & Operational Value
 
-* **Target Users**: Mine Engineers, Surveyors, Mining Contractors (PAMA Persada).
+* **Target Users**: Mine Engineers, Surveyors, Mining Contractors & Operators.
 * **Operational Benefit**:
   * **Zero Cost / Zero Overhead**: Eliminates reliance on extra CAD licenses for quick map generation.
   * **High Throughput**: Processes 800 MB+ ASCII DXF files in seconds using all CPU cores (Rust Rayon + SIMD) with optional CUDA acceleration.

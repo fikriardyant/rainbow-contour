@@ -3,9 +3,10 @@ use rainbow_contour::config::EngineConfig;
 #[test]
 fn test_config_default_values() {
     let cfg = EngineConfig::default();
-    assert_eq!(cfg.company_name, "PT PAMA PERSADA NUSANTARA");
+    assert_eq!(cfg.company_name, "PT MINING NUSANTARA PRIMA");
+    assert_eq!(cfg.district_name, "DISTRIK NUSANTARA");
     assert_eq!(cfg.default_title, "PIT ALPHA CUT & FILL");
-    assert_eq!(cfg.drawn_by, "Fikri Ardyantoro");
+    assert_eq!(cfg.drawn_by, "Mine Engineer");
     assert_eq!(cfg.topo_date, "28 July 2026");
     assert_eq!(cfg.grid_step, 0.5);
     assert_eq!(cfg.max_tin_edge, 300.0);

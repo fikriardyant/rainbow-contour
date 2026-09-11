@@ -212,9 +212,9 @@ impl Default for EngineConfig {
         Self {
             topo_path: String::new(),
             design_path: String::new(),
-            company_name: "PT PAMA PERSADA NUSANTARA".to_string(),
+            company_name: "PT MINING NUSANTARA PRIMA".to_string(),
             default_title: "PIT ALPHA CUT & FILL".to_string(),
-            drawn_by: "Fikri Ardyantoro".to_string(),
+            drawn_by: "Mine Engineer".to_string(),
             topo_date: "28 July 2026".to_string(),
             design_name: String::new(),
             company_logo_path: "company_logo.png".to_string(),
@@ -232,7 +232,7 @@ impl Default for EngineConfig {
 
             // Default First-Run & Kop Metadata
             first_run: false,
-            district_name: "DISTRIK KPCS • SANGATTA".to_string(),
+            district_name: "DISTRIK NUSANTARA".to_string(),
             department_name: "ENGINEERING & MINE PLANNING DEPT.".to_string(),
             project_name: "PIT ALPHA".to_string(),
             map_subtitle: "ISOPACH DIFFERENCE (TOPO - DESIGN)".to_string(),

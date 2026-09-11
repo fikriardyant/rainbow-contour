@@ -43,7 +43,7 @@
 ### Task 3: Verify with Real-World Mining Data (`Topo_Design_trial`)
 
 **Files:**
-- Test against `/home/cells/Documents/Topo_Design_trial/TP_WK33.Dxf` and `PAMA_PIT_SPE_PNL2_SCBD_SOUTH_R02_260607_DESIGN.dxf`
+- Test against `/home/cells/Documents/Topo_Design_trial/TOPO.Dxf` and `PIT_ALPHA_DESIGN.dxf`
 
 - [ ] **Step 1: Run benchmark and trial run on real pit data**
 - [ ] **Step 2: Validate cut/fill output and generated viewer**

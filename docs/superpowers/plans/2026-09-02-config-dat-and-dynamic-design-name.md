@@ -9,7 +9,7 @@
 ### Task 1: Create `src/config.rs` to Handle `config.dat`
 - Key-Value parser format INI/DAT yang robust (support comments `#`, whitespace trimming, default value fallback).
 - Auto-generate `config.dat` jika belum ada dengan nilai default yang persis sama dengan settingan saat ini:
-  - `COMPANY_NAME=PT PAMA PERSADA NUSANTARA`
+  - `COMPANY_NAME=PT MINING NUSANTARA PRIMA`
   - `DEFAULT_TITLE=PIT A CUT & FILL MAP`
   - `DRAWN_BY=Fikri Ardyantoro`
   - `GRID_STEP=1.0`
