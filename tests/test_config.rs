@@ -8,11 +8,11 @@ fn test_config_15_bands_palette_and_labels() {
     assert_eq!(cfg.color_cut_to_grade, "#76FF03");
     assert_eq!(cfg.label_cut_to_grade, "0.2-1m");
     assert_eq!(cfg.color_ongrade, "#00E676");
-    assert_eq!(cfg.label_ongrade, "-0.2 - 0.2m");
-    assert_eq!(cfg.color_fill_to_grade, "#1B5E20");
-    assert_eq!(cfg.label_fill_to_grade, "-1 - -0.2m");
-    assert_eq!(cfg.color_fill_minor, "#00E5FF");
-    assert_eq!(cfg.label_fill_minor, "-2 - -1m");
+    assert_eq!(cfg.label_ongrade, "±0.2m");
+    assert_eq!(cfg.color_fill_to_grade, "#00BFA5");
+    assert_eq!(cfg.label_fill_to_grade, "0.2-1m");
+    assert_eq!(cfg.color_fill_minor, "#00ACC1");
+    assert_eq!(cfg.label_fill_minor, "1-2m");
 
     let custom_dat = r#"
 COLOR_CUT_MINOR=#FFFF00

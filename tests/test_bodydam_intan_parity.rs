@@ -80,17 +80,18 @@ fn test_bodydam_intan_minescape_parity_and_15_bands() {
     assert!(html.contains("8,579.88 m³"));
     assert!(html.contains("10,407.07 m³"));
 
-    // Check 15-band legend entries
-    assert!(html.contains("-0.2 - 0.2m")); // On Grade level center
-    assert!(html.contains("0.2-1m"));      // Cut to Grade
-    assert!(html.contains("-1 - -0.2m"));  // Fill to Grade
-    assert!(html.contains("1-2m"));        // Cut Minor (Yellow)
-    assert!(html.contains("-2 - -1m"));    // Fill Minor (Cyan)
+    // Check 15-band clean legend entries
+    assert!(html.contains("±0.2m"));       // On Grade level center
+    assert!(html.contains("0.2-1m"));      // To Grade
+    assert!(html.contains("1-2m"));        // Minor
+    assert!(html.contains("CUT (+)"));
+    assert!(html.contains("FILL (-)"));
 
-    // Check palette colors
+    // Check smooth gradient palette colors
     assert!(html.contains("#76FF03"));     // Lime Green
     assert!(html.contains("#00E676"));     // Emerald Green
-    assert!(html.contains("#1B5E20"));     // Dark Forest Green
+    assert!(html.contains("#00BFA5"));     // Sea Green (Transisi hijau)
+    assert!(html.contains("#00ACC1"));     // Teal (Transisi biru)
+    assert!(html.contains("#00B0FF"));     // Sky Blue / Cyan
     assert!(html.contains("#FFE600"));     // Yellow
-    assert!(html.contains("#00E5FF"));     // Cyan
 }

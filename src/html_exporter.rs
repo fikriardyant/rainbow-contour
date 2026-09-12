@@ -88,6 +88,48 @@ struct HeatmapRasterMetadata {
     rle: Vec<u32>, // [color_id, count, color_id, count, ...]
 }
 
+/// Eliminate isolated salt-and-pepper pixels using an 8-neighborhood majority filter.
+pub fn denoise_raster_majority(grid_bytes: &mut [u8], cols: usize, rows: usize) {
+    if cols < 3 || rows < 3 {
+        return;
+    }
+    let copy = grid_bytes.to_vec();
+    for y in 1..rows - 1 {
+        for x in 1..cols - 1 {
+            let idx = y * cols + x;
+            let val = copy[idx];
+            if val == 0 {
+                continue; // preserve empty outside boundary
+            }
+
+            let mut counts = [0u8; 16];
+            let mut valid_neighbors = 0;
+            for dy in -1..=1 {
+                for dx in -1..=1 {
+                    if dx == 0 && dy == 0 {
+                        continue;
+                    }
+                    let n_idx = (y as isize + dy) as usize * cols + (x as isize + dx) as usize;
+                    let n_val = copy[n_idx];
+                    if n_val != 0 {
+                        counts[n_val as usize] += 1;
+                        valid_neighbors += 1;
+                    }
+                }
+            }
+
+            if valid_neighbors >= 6 {
+                for (color_id, &cnt) in counts.iter().enumerate().skip(1) {
+                    if cnt >= 6 && color_id as u8 != val {
+                        grid_bytes[idx] = color_id as u8;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn delta_z_to_color_id(dz: f64, ongrade_min: f64, ongrade_max: f64) -> u32 {
     // Cut (Topo > Design, dz > 0)
     if dz > 16.0 {
@@ -203,6 +245,8 @@ pub fn generate_html_viewer_with_config(
             grid_bytes[gy * cols + gx] = delta_z_to_color_id(p.delta_z, config.ongrade_min, config.ongrade_max) as u8;
         }
     }
+
+    denoise_raster_majority(&mut grid_bytes, cols, rows);
 
     let mut rle: Vec<u32> = Vec::new();
     if !grid_bytes.is_empty() {
@@ -943,85 +987,55 @@ pub fn generate_html_viewer_with_config(
                     </div>
                 </div>
 
-                <!-- 6. LEGEND (flex-1, classic unified table) -->
+                <!-- 6. LEGEND (flex-1, clean 2-column table) -->
                 <div class="kop-section flex flex-col flex-1" style="box-sizing: border-box; overflow: hidden;">
                     <div class="kop-header-bar" style="height: 20px; line-height: 20px; box-sizing: border-box;">LEGEND</div>
-                    <div class="px-2.5 py-2 flex flex-col flex-1" style="box-sizing: border-box;">
-                        <table class="w-full h-full text-[9px] font-bold" style="border-collapse: collapse;">
-                            <!-- Cut Rows -->
-                            <tr>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_deep}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_deep}</span>
-                                </td>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_high}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_high}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_mid}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_mid}</span>
-                                </td>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_low}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_low}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_near}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_near}</span>
-                                </td>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_minor}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_minor}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" style="vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_cut_to_grade}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_to_grade}</span>
-                                </td>
-                            </tr>
-
-                            <!-- Level / Center Row -->
-                            <tr>
-                                <td colspan="2" style="vertical-align: middle;">
-                                    <div class="w-full bg-emerald-50 border border-emerald-400 py-0.5 px-2 flex items-center gap-2 rounded-[2px]">
-                                        <span class="swatch" style="background-color: {c_ongrade};"></span>
-                                        <span class="text-emerald-900 font-black text-[9px]">{l_ongrade}</span>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Fill to Grade Row -->
-                            <tr>
-                                <td colspan="2" style="vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_to_grade}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_to_grade}</span>
-                                </td>
-                            </tr>
-
-                            <!-- Fill Rows -->
-                            <tr>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_minor}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_minor}</span>
-                                </td>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_near}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_near}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_low}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_low}</span>
-                                </td>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_mid}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_mid}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_high}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_high}</span>
-                                </td>
-                                <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_deep}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_deep}</span>
-                                </td>
-                            </tr>
+                    <div class="px-2.5 py-1.5 flex flex-col flex-1 justify-between" style="box-sizing: border-box;">
+                        <table class="w-full text-[8.5px] font-bold" style="border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1.5px solid #0f172a;">
+                                    <th style="width: 50%; text-align: left; padding-bottom: 2px; color: #b91c1c; font-size: 8px;">CUT (+)</th>
+                                    <th style="width: 50%; text-align: left; padding-bottom: 2px; color: #1d4ed8; font-size: 8px;">FILL (-)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_deep}; margin-right: 4px;"></span>{l_cut_deep}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_deep}; margin-right: 4px;"></span>{l_fill_deep}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_high}; margin-right: 4px;"></span>{l_cut_high}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_high}; margin-right: 4px;"></span>{l_fill_high}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_mid}; margin-right: 4px;"></span>{l_cut_mid}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_mid}; margin-right: 4px;"></span>{l_fill_mid}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_low}; margin-right: 4px;"></span>{l_cut_low}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_low}; margin-right: 4px;"></span>{l_fill_low}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_near}; margin-right: 4px;"></span>{l_cut_near}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_near}; margin-right: 4px;"></span>{l_fill_near}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_minor}; margin-right: 4px;"></span>{l_cut_minor}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_minor}; margin-right: 4px;"></span>{l_fill_minor}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_cut_to_grade}; margin-right: 4px;"></span>{l_cut_to_grade}</td>
+                                    <td style="padding: 1.5px 0; vertical-align: middle;"><span class="swatch" style="background-color: {c_fill_to_grade}; margin-right: 4px;"></span>{l_fill_to_grade}</td>
+                                </tr>
+                            </tbody>
                         </table>
+                        <div class="w-full bg-emerald-50 border border-emerald-500 py-1 px-2 flex items-center justify-between rounded-[2px] mt-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="swatch" style="background-color: {c_ongrade};"></span>
+                                <span class="text-emerald-950 font-black text-[8px] uppercase tracking-wider">LEVEL / ON GRADE</span>
+                            </div>
+                            <span class="text-emerald-900 font-black text-[9px] font-cad-mono">{l_ongrade}</span>
+                        </div>
                     </div>
                 </div>
 

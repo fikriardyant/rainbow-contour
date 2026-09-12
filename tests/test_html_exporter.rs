@@ -100,7 +100,23 @@ fn test_html_exporter_custom_colors_and_ongrade() {
     assert!(html.contains("#00FF66"));
     assert!(html.contains("0.2-1m"));
     assert!(html.contains("1-2m"));
-    assert!(html.contains("-2 - -1m"));
+    assert!(html.contains("CUT (+)"));
+    assert!(html.contains("FILL (-)"));
+}
+
+#[test]
+fn test_denoise_raster_majority_eliminates_isolated_spikes() {
+    use rainbow_contour::html_exporter::denoise_raster_majority;
+    let cols = 5;
+    let rows = 5;
+    // 5x5 grid of all color 8 (Emerald Green), with 1 isolated color 10 (Cyan) at center (2, 2)
+    let mut grid = vec![8u8; cols * rows];
+    grid[2 * cols + 2] = 10; // outlier spike
+
+    denoise_raster_majority(&mut grid, cols, rows);
+
+    // Center pixel should be smoothed to dominant neighbor (8)
+    assert_eq!(grid[2 * cols + 2], 8);
 }
 
 #[test]
