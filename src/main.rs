@@ -180,8 +180,8 @@ fn main() {
 
     println!("\n----------------------------------------------------------------------");
     println!(
-        "Volume Summary (Ongrade [{:+.2}m, {:+.2}m]): Cut = {:.2} m³ | Fill = {:.2} m³ | Ongrade Area = {:.2} m²",
-        config.ongrade_min, config.ongrade_max, volume.cut_m3, volume.fill_m3, volume.ongrade_area_m2
+        "Volume Summary: Cut = {:.2} m³ | Fill = {:.2} m³ | Net = {:+.2} m³ (Level [{:+.2}m, {:+.2}m] Area = {:.2} m²)",
+        volume.cut_m3, volume.fill_m3, volume.net_m3, config.ongrade_min, config.ongrade_max, volume.ongrade_area_m2
     );
 
     // 1. Project Name / Pit Name: CLI > Prompt (default from config.dat)
