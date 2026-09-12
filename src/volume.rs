@@ -22,11 +22,13 @@ pub fn calculate_volume_with_tolerance(
     let mut ongrade_area = 0.0;
 
     for pt in grid {
-        if pt.delta_z > ongrade_max {
+        if pt.delta_z > 0.0 {
             cut += pt.delta_z * cell_area;
-        } else if pt.delta_z < ongrade_min {
+        } else if pt.delta_z < 0.0 {
             fill += pt.delta_z.abs() * cell_area;
-        } else {
+        }
+
+        if pt.delta_z >= ongrade_min && pt.delta_z <= ongrade_max {
             ongrade_area += cell_area;
         }
     }
