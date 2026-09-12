@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-09-12
+
+### Added
+- **Gross Volume Parity with MineScape & Civil 3D**: Discarded the ongrade deadband volume exclusion. The calculation now computes full gross Cut ($\Delta Z > 0$) and Fill ($\Delta Z < 0$), achieving < 0.2% parity with MineScape and Civil 3D benchmark figures.
+- **3x3 Spatial Raster Majority Denoiser**: Implemented an 8-neighborhood majority filter on the raster grid before RLE compression to eliminate high-frequency quantization noise (salt-and-pepper pixel artifacts along threshold boundaries).
+- **15-Band Tri-Green Spectral Palette**: Expanded elevation bands from 13 to 15, adding transitional sub-bands for near-grade excavation (`0.2-1m` Lime Green, `1-2m` Yellow) and fill (`0.2-1m` Sea Green, `1-2m` Teal).
+
+### Changed
+- **Symmetric 2-Column Legend (CUT vs FILL)**: Redesigned the KOP legend into a clean, balanced 2-column tabular layout separating Cut (+) and Fill (-). Removed ambiguous negative double-hyphens (` - - `) and eliminated empty grid holes.
+- **Explicit Grade Center Range**: Standardized the central level bar to explicit numerical bounds (`LEVEL / ON GRADE: ±0.2m`) rather than generic text.
+- **Smooth GIS Fill Spectrum**: Replaced the abrupt dark forest green-to-cyan transition with a smooth, continuous natural gradient (`#00E676` $\to$ `#00BFA5` $\to$ `#00ACC1` $\to$ `#00B0FF`).
+
+---
+
 ## [1.3.0] - 2026-09-11
 
 ### Added

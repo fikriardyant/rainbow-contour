@@ -76,7 +76,7 @@ pub fn extract_design_name_default(design_path: &str) -> String {
 fn main() {
     let args = cli::CliArgs::parse();
     println!("======================================================================");
-    println!("  RAINBOW CONTOUR - Cut & Fill Difference Map Generator v1.3.0");
+    println!("  RAINBOW CONTOUR - Cut & Fill Difference Map Generator v1.4.0");
     println!("======================================================================");
 
     // 1. Load or auto-generate config.dat
