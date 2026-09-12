@@ -100,22 +100,26 @@ pub fn delta_z_to_color_id(dz: f64, ongrade_min: f64, ongrade_max: f64) -> u32 {
         4
     } else if dz > 2.0 {
         5
+    } else if dz > 1.0 {
+        6 // Cut Minor (Yellow)
     } else if dz > ongrade_max {
-        6
+        7 // Cut to Grade (Lime Green)
     } else if dz >= ongrade_min && dz <= ongrade_max {
-        7 // ON GRADE
+        8 // On Grade / Level (Emerald Green)
+    } else if dz >= -1.0 {
+        9 // Fill to Grade (Dark Forest Green)
     } else if dz >= -2.0 {
-        8
+        10 // Fill Minor (Cyan)
     } else if dz >= -4.0 {
-        9
-    } else if dz >= -8.0 {
-        10
-    } else if dz >= -12.0 {
         11
-    } else if dz >= -16.0 {
+    } else if dz >= -8.0 {
         12
-    } else {
+    } else if dz >= -12.0 {
         13
+    } else if dz >= -16.0 {
+        14
+    } else {
+        15
     }
 }
 
@@ -474,17 +478,19 @@ pub fn generate_html_viewer_with_config(
     let p3 = hex_to_rgba(&config.color_cut_mid);
     let p4 = hex_to_rgba(&config.color_cut_low);
     let p5 = hex_to_rgba(&config.color_cut_near);
-    let p6 = hex_to_rgba(&config.color_cut_to_grade);
-    let p7 = hex_to_rgba(&config.color_ongrade);
-    let p8 = hex_to_rgba(&config.color_fill_to_grade);
-    let p9 = hex_to_rgba(&config.color_fill_near);
-    let p10 = hex_to_rgba(&config.color_fill_low);
-    let p11 = hex_to_rgba(&config.color_fill_mid);
-    let p12 = hex_to_rgba(&config.color_fill_high);
-    let p13 = hex_to_rgba(&config.color_fill_deep);
+    let p6 = hex_to_rgba(&config.color_cut_minor);
+    let p7 = hex_to_rgba(&config.color_cut_to_grade);
+    let p8 = hex_to_rgba(&config.color_ongrade);
+    let p9 = hex_to_rgba(&config.color_fill_to_grade);
+    let p10 = hex_to_rgba(&config.color_fill_minor);
+    let p11 = hex_to_rgba(&config.color_fill_near);
+    let p12 = hex_to_rgba(&config.color_fill_low);
+    let p13 = hex_to_rgba(&config.color_fill_mid);
+    let p14 = hex_to_rgba(&config.color_fill_high);
+    let p15 = hex_to_rgba(&config.color_fill_deep);
 
     let palette_js = format!(
-        "[\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}]\n]",
+        "[\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}],\n  [{},{},{},{}]\n]",
         p_empty[0], p_empty[1], p_empty[2], p_empty[3],
         p1[0], p1[1], p1[2], p1[3],
         p2[0], p2[1], p2[2], p2[3],
@@ -499,6 +505,8 @@ pub fn generate_html_viewer_with_config(
         p11[0], p11[1], p11[2], p11[3],
         p12[0], p12[1], p12[2], p12[3],
         p13[0], p13[1], p13[2], p13[3],
+        p14[0], p14[1], p14[2], p14[3],
+        p15[0], p15[1], p15[2], p15[3],
     );
 
     format!(
@@ -962,24 +970,36 @@ pub fn generate_html_viewer_with_config(
                                     <span class="swatch" style="background-color: {c_cut_near}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_near}</span>
                                 </td>
                                 <td style="width: 50%; vertical-align: middle;">
+                                    <span class="swatch" style="background-color: {c_cut_minor}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_minor}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" style="vertical-align: middle;">
                                     <span class="swatch" style="background-color: {c_cut_to_grade}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_cut_to_grade}</span>
                                 </td>
                             </tr>
 
-                            <!-- On Grade Row -->
+                            <!-- Level / Center Row -->
                             <tr>
                                 <td colspan="2" style="vertical-align: middle;">
-                                    <div class="w-full bg-emerald-50 border border-emerald-400 py-1 px-2 flex items-center gap-2 rounded-[2px]">
+                                    <div class="w-full bg-emerald-50 border border-emerald-400 py-0.5 px-2 flex items-center gap-2 rounded-[2px]">
                                         <span class="swatch" style="background-color: {c_ongrade};"></span>
                                         <span class="text-emerald-900 font-black text-[9px]">{l_ongrade}</span>
                                     </div>
                                 </td>
                             </tr>
 
+                            <!-- Fill to Grade Row -->
+                            <tr>
+                                <td colspan="2" style="vertical-align: middle;">
+                                    <span class="swatch" style="background-color: {c_fill_to_grade}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_to_grade}</span>
+                                </td>
+                            </tr>
+
                             <!-- Fill Rows -->
                             <tr>
                                 <td style="width: 50%; vertical-align: middle;">
-                                    <span class="swatch" style="background-color: {c_fill_to_grade}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_to_grade}</span>
+                                    <span class="swatch" style="background-color: {c_fill_minor}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_minor}</span>
                                 </td>
                                 <td style="width: 50%; vertical-align: middle;">
                                     <span class="swatch" style="background-color: {c_fill_near}; margin-right: 5px;"></span><span style="vertical-align: middle;">{l_fill_near}</span>
@@ -1258,12 +1278,16 @@ pub fn generate_html_viewer_with_config(
         l_cut_low = config.label_cut_low,
         c_cut_near = config.color_cut_near,
         l_cut_near = config.label_cut_near,
+        c_cut_minor = config.color_cut_minor,
+        l_cut_minor = config.label_cut_minor,
         c_cut_to_grade = config.color_cut_to_grade,
         l_cut_to_grade = config.label_cut_to_grade,
         c_ongrade = config.color_ongrade,
         l_ongrade = config.label_ongrade,
         c_fill_to_grade = config.color_fill_to_grade,
         l_fill_to_grade = config.label_fill_to_grade,
+        c_fill_minor = config.color_fill_minor,
+        l_fill_minor = config.label_fill_minor,
         c_fill_near = config.color_fill_near,
         l_fill_near = config.label_fill_near,
         c_fill_low = config.color_fill_low,

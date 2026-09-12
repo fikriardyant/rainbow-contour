@@ -39,12 +39,43 @@ fn test_generate_html_viewer_contains_neobrutalism_css() {
 }
 
 #[test]
+fn test_delta_z_to_color_id_15_bands() {
+    use rainbow_contour::html_exporter::delta_z_to_color_id;
+    let ongrade_min = -0.2;
+    let ongrade_max = 0.2;
+
+    // Cut bands (1..=7)
+    assert_eq!(delta_z_to_color_id(18.0, ongrade_min, ongrade_max), 1); // > 16m
+    assert_eq!(delta_z_to_color_id(14.0, ongrade_min, ongrade_max), 2); // 12..16m
+    assert_eq!(delta_z_to_color_id(10.0, ongrade_min, ongrade_max), 3); // 8..12m
+    assert_eq!(delta_z_to_color_id(6.0, ongrade_min, ongrade_max), 4);  // 4..8m
+    assert_eq!(delta_z_to_color_id(3.0, ongrade_min, ongrade_max), 5);  // 2..4m
+    assert_eq!(delta_z_to_color_id(1.5, ongrade_min, ongrade_max), 6);  // 1..2m (Yellow)
+    assert_eq!(delta_z_to_color_id(0.5, ongrade_min, ongrade_max), 7);  // 0.2..1m (Lime Green)
+
+    // Center / Level band (8)
+    assert_eq!(delta_z_to_color_id(0.1, ongrade_min, ongrade_max), 8);  // -0.2..0.2m (Emerald Green)
+    assert_eq!(delta_z_to_color_id(0.0, ongrade_min, ongrade_max), 8);
+    assert_eq!(delta_z_to_color_id(-0.1, ongrade_min, ongrade_max), 8);
+
+    // Fill bands (9..=15)
+    assert_eq!(delta_z_to_color_id(-0.5, ongrade_min, ongrade_max), 9); // -1..-0.2m (Forest Green)
+    assert_eq!(delta_z_to_color_id(-1.5, ongrade_min, ongrade_max), 10); // -2..-1m (Cyan)
+    assert_eq!(delta_z_to_color_id(-3.0, ongrade_min, ongrade_max), 11); // -4..-2m
+    assert_eq!(delta_z_to_color_id(-6.0, ongrade_min, ongrade_max), 12); // -8..-4m
+    assert_eq!(delta_z_to_color_id(-10.0, ongrade_min, ongrade_max), 13); // -12..-8m
+    assert_eq!(delta_z_to_color_id(-14.0, ongrade_min, ongrade_max), 14); // -16..-12m
+    assert_eq!(delta_z_to_color_id(-20.0, ongrade_min, ongrade_max), 15); // < -16m
+}
+
+#[test]
 fn test_html_exporter_custom_colors_and_ongrade() {
     let mut config = EngineConfig::default();
     config.ongrade_min = -0.5;
     config.ongrade_max = 0.5;
     config.color_ongrade = "#00FF66".to_string();
     config.color_cut_deep = "#7F0000".to_string();
+    config.label_ongrade = "ON GRADE".to_string();
 
     let kop = KopInfo {
         title: "Pit A",
@@ -67,7 +98,9 @@ fn test_html_exporter_custom_colors_and_ongrade() {
     let html = generate_html_viewer_with_config(&kop, &[], &summary, &[], &config);
     assert!(html.contains("ON GRADE"));
     assert!(html.contains("#00FF66"));
-    assert!(html.contains("0-2m"));
+    assert!(html.contains("0.2-1m"));
+    assert!(html.contains("1-2m"));
+    assert!(html.contains("-2 - -1m"));
 }
 
 #[test]
