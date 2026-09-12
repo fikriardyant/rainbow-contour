@@ -182,13 +182,15 @@ pub struct EngineConfig {
     pub color_cut_mid: String,       // 8..12m
     pub color_cut_low: String,       // 4..8m
     pub color_cut_near: String,      // 2..4m
-    pub color_cut_to_grade: String,  // ongrade_max..2m
-    pub color_ongrade: String,       // ongrade_min..ongrade_max
-    pub color_fill_to_grade: String, // -2m..ongrade_min
-    pub color_fill_near: String,     // -4m..-2m
-    pub color_fill_low: String,      // -8m..-4m
-    pub color_fill_mid: String,      // -12m..-8m
-    pub color_fill_high: String,     // -16m..-12m
+    pub color_cut_minor: String,     // 1..2m
+    pub color_cut_to_grade: String,  // 0.2..1m
+    pub color_ongrade: String,       // -0.2..0.2m
+    pub color_fill_to_grade: String, // -1..-0.2m
+    pub color_fill_minor: String,    // -2..-1m
+    pub color_fill_near: String,     // -4..-2m
+    pub color_fill_low: String,      // -8..-4m
+    pub color_fill_mid: String,      // -12..-8m
+    pub color_fill_high: String,     // -16..-12m
     pub color_fill_deep: String,     // < -16m
 
     // Label Teks Legenda
@@ -197,9 +199,11 @@ pub struct EngineConfig {
     pub label_cut_mid: String,
     pub label_cut_low: String,
     pub label_cut_near: String,
+    pub label_cut_minor: String,
     pub label_cut_to_grade: String,
     pub label_ongrade: String,
     pub label_fill_to_grade: String,
+    pub label_fill_minor: String,
     pub label_fill_near: String,
     pub label_fill_low: String,
     pub label_fill_mid: String,
@@ -242,19 +246,21 @@ impl Default for EngineConfig {
             grid_interval: 200.0,
             subtick_interval: 50.0,
 
-            // Default ongrade tolerance [-0.5, +0.5]
-            ongrade_min: -0.5,
-            ongrade_max: 0.5,
+            // Default ongrade tolerance [-0.2, +0.2]
+            ongrade_min: -0.2,
+            ongrade_max: 0.2,
 
-            // High-Contrast Vivid Palette
+            // High-Contrast Vivid 15-Band Palette
             color_cut_deep: "#7F0000".to_string(),
             color_cut_high: "#B71C1C".to_string(),
             color_cut_mid: "#D50000".to_string(),
             color_cut_low: "#FF3D00".to_string(),
             color_cut_near: "#FF9100".to_string(),
-            color_cut_to_grade: "#FFE600".to_string(),
+            color_cut_minor: "#FFE600".to_string(),
+            color_cut_to_grade: "#76FF03".to_string(),
             color_ongrade: "#00E676".to_string(),
-            color_fill_to_grade: "#00E5FF".to_string(),
+            color_fill_to_grade: "#1B5E20".to_string(),
+            color_fill_minor: "#00E5FF".to_string(),
             color_fill_near: "#00B0FF".to_string(),
             color_fill_low: "#2979FF".to_string(),
             color_fill_mid: "#0039CB".to_string(),
@@ -262,19 +268,21 @@ impl Default for EngineConfig {
             color_fill_deep: "#311B92".to_string(),
 
             // Default Clean CAD Legend Labels
-            label_cut_deep: "> 16m (Cut)".to_string(),
+            label_cut_deep: "> 16m".to_string(),
             label_cut_high: "12-16m".to_string(),
             label_cut_mid: "8-12m".to_string(),
             label_cut_low: "4-8m".to_string(),
             label_cut_near: "2-4m".to_string(),
-            label_cut_to_grade: "0-2m".to_string(),
-            label_ongrade: "ON GRADE".to_string(),
-            label_fill_to_grade: "0-2m".to_string(),
+            label_cut_minor: "1-2m".to_string(),
+            label_cut_to_grade: "0.2-1m".to_string(),
+            label_ongrade: "-0.2 - 0.2m".to_string(),
+            label_fill_to_grade: "-1 - -0.2m".to_string(),
+            label_fill_minor: "-2 - -1m".to_string(),
             label_fill_near: "2-4m".to_string(),
             label_fill_low: "4-8m".to_string(),
             label_fill_mid: "8-12m".to_string(),
             label_fill_high: "12-16m".to_string(),
-            label_fill_deep: "> 16m (Fill)".to_string(),
+            label_fill_deep: "> 16m".to_string(),
         }
     }
 }
@@ -361,9 +369,11 @@ impl EngineConfig {
         let color_cut_mid = map.get("COLOR_CUT_MID").cloned().unwrap_or(def.color_cut_mid);
         let color_cut_low = map.get("COLOR_CUT_LOW").cloned().unwrap_or(def.color_cut_low);
         let color_cut_near = map.get("COLOR_CUT_NEAR").cloned().unwrap_or(def.color_cut_near);
+        let color_cut_minor = map.get("COLOR_CUT_MINOR").cloned().unwrap_or(def.color_cut_minor);
         let color_cut_to_grade = map.get("COLOR_CUT_TO_GRADE").cloned().unwrap_or(def.color_cut_to_grade);
         let color_ongrade = map.get("COLOR_ONGRADE").cloned().unwrap_or(def.color_ongrade);
         let color_fill_to_grade = map.get("COLOR_FILL_TO_GRADE").cloned().unwrap_or(def.color_fill_to_grade);
+        let color_fill_minor = map.get("COLOR_FILL_MINOR").cloned().unwrap_or(def.color_fill_minor);
         let color_fill_near = map.get("COLOR_FILL_NEAR").cloned().unwrap_or(def.color_fill_near);
         let color_fill_low = map.get("COLOR_FILL_LOW").cloned().unwrap_or(def.color_fill_low);
         let color_fill_mid = map.get("COLOR_FILL_MID").cloned().unwrap_or(def.color_fill_mid);
@@ -375,9 +385,11 @@ impl EngineConfig {
         let label_cut_mid = map.get("LABEL_CUT_MID").cloned().unwrap_or(def.label_cut_mid);
         let label_cut_low = map.get("LABEL_CUT_LOW").cloned().unwrap_or(def.label_cut_low);
         let label_cut_near = map.get("LABEL_CUT_NEAR").cloned().unwrap_or(def.label_cut_near);
+        let label_cut_minor = map.get("LABEL_CUT_MINOR").cloned().unwrap_or(def.label_cut_minor);
         let label_cut_to_grade = map.get("LABEL_CUT_TO_GRADE").cloned().unwrap_or(def.label_cut_to_grade);
         let label_ongrade = map.get("LABEL_ONGRADE").cloned().unwrap_or(def.label_ongrade);
         let label_fill_to_grade = map.get("LABEL_FILL_TO_GRADE").cloned().unwrap_or(def.label_fill_to_grade);
+        let label_fill_minor = map.get("LABEL_FILL_MINOR").cloned().unwrap_or(def.label_fill_minor);
         let label_fill_near = map.get("LABEL_FILL_NEAR").cloned().unwrap_or(def.label_fill_near);
         let label_fill_low = map.get("LABEL_FILL_LOW").cloned().unwrap_or(def.label_fill_low);
         let label_fill_mid = map.get("LABEL_FILL_MID").cloned().unwrap_or(def.label_fill_mid);
@@ -473,9 +485,11 @@ impl EngineConfig {
             color_cut_mid,
             color_cut_low,
             color_cut_near,
+            color_cut_minor,
             color_cut_to_grade,
             color_ongrade,
             color_fill_to_grade,
+            color_fill_minor,
             color_fill_near,
             color_fill_low,
             color_fill_mid,
@@ -486,9 +500,11 @@ impl EngineConfig {
             label_cut_mid,
             label_cut_low,
             label_cut_near,
+            label_cut_minor,
             label_cut_to_grade,
             label_ongrade,
             label_fill_to_grade,
+            label_fill_minor,
             label_fill_near,
             label_fill_low,
             label_fill_mid,
@@ -558,9 +574,11 @@ LABEL_CUT_HIGH={}
 LABEL_CUT_MID={}
 LABEL_CUT_LOW={}
 LABEL_CUT_NEAR={}
+LABEL_CUT_MINOR={}
 LABEL_CUT_TO_GRADE={}
 LABEL_ONGRADE={}
 LABEL_FILL_TO_GRADE={}
+LABEL_FILL_MINOR={}
 LABEL_FILL_NEAR={}
 LABEL_FILL_LOW={}
 LABEL_FILL_MID={}
@@ -573,9 +591,11 @@ COLOR_CUT_HIGH={}
 COLOR_CUT_MID={}
 COLOR_CUT_LOW={}
 COLOR_CUT_NEAR={}
+COLOR_CUT_MINOR={}
 COLOR_CUT_TO_GRADE={}
 COLOR_ONGRADE={}
 COLOR_FILL_TO_GRADE={}
+COLOR_FILL_MINOR={}
 COLOR_FILL_NEAR={}
 COLOR_FILL_LOW={}
 COLOR_FILL_MID={}
@@ -618,9 +638,11 @@ DEFAULT_OUTDIR={}
             self.label_cut_mid,
             self.label_cut_low,
             self.label_cut_near,
+            self.label_cut_minor,
             self.label_cut_to_grade,
             self.label_ongrade,
             self.label_fill_to_grade,
+            self.label_fill_minor,
             self.label_fill_near,
             self.label_fill_low,
             self.label_fill_mid,
@@ -631,9 +653,11 @@ DEFAULT_OUTDIR={}
             self.color_cut_mid,
             self.color_cut_low,
             self.color_cut_near,
+            self.color_cut_minor,
             self.color_cut_to_grade,
             self.color_ongrade,
             self.color_fill_to_grade,
+            self.color_fill_minor,
             self.color_fill_near,
             self.color_fill_low,
             self.color_fill_mid,

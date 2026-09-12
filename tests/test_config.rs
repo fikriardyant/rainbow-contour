@@ -1,6 +1,35 @@
 use rainbow_contour::config::EngineConfig;
 
 #[test]
+fn test_config_15_bands_palette_and_labels() {
+    let cfg = EngineConfig::default();
+    assert_eq!(cfg.color_cut_minor, "#FFE600");
+    assert_eq!(cfg.label_cut_minor, "1-2m");
+    assert_eq!(cfg.color_cut_to_grade, "#76FF03");
+    assert_eq!(cfg.label_cut_to_grade, "0.2-1m");
+    assert_eq!(cfg.color_ongrade, "#00E676");
+    assert_eq!(cfg.label_ongrade, "-0.2 - 0.2m");
+    assert_eq!(cfg.color_fill_to_grade, "#1B5E20");
+    assert_eq!(cfg.label_fill_to_grade, "-1 - -0.2m");
+    assert_eq!(cfg.color_fill_minor, "#00E5FF");
+    assert_eq!(cfg.label_fill_minor, "-2 - -1m");
+
+    let custom_dat = r#"
+COLOR_CUT_MINOR=#FFFF00
+LABEL_CUT_MINOR=1..2m
+COLOR_FILL_MINOR=#00FFFF
+LABEL_FILL_MINOR=-2..-1m
+LABEL_ONGRADE=PAS 0M
+"#;
+    let parsed = EngineConfig::parse_content(custom_dat);
+    assert_eq!(parsed.color_cut_minor, "#FFFF00");
+    assert_eq!(parsed.label_cut_minor, "1..2m");
+    assert_eq!(parsed.color_fill_minor, "#00FFFF");
+    assert_eq!(parsed.label_fill_minor, "-2..-1m");
+    assert_eq!(parsed.label_ongrade, "PAS 0M");
+}
+
+#[test]
 fn test_config_default_values() {
     let cfg = EngineConfig::default();
     assert_eq!(cfg.company_name, "PT MINING NUSANTARA PRIMA");
@@ -14,8 +43,8 @@ fn test_config_default_values() {
     assert_eq!(cfg.supplement_max_dist, 10.0);
     assert_eq!(cfg.default_outdir, "./output");
     assert_eq!(cfg.contour_levels.len(), 21);
-    assert_eq!(cfg.ongrade_min, -0.5);
-    assert_eq!(cfg.ongrade_max, 0.5);
+    assert_eq!(cfg.ongrade_min, -0.2);
+    assert_eq!(cfg.ongrade_max, 0.2);
     assert_eq!(cfg.color_ongrade, "#00E676");
 }
 
